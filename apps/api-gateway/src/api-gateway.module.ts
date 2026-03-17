@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { ApiGatewayController } from './api-gateway.controller';
 import { ApiGatewayService } from './api-gateway.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { CircuitBreakerService } from './common/circuitBreaker';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ResilienceInterceptor } from './common/circuitBreakerInterceptor';
 
 @Module({
   imports: [
@@ -24,6 +27,13 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
     ]),
   ],
   controllers: [ApiGatewayController],
-  providers: [ApiGatewayService],
+  providers: [
+    ApiGatewayService,
+    CircuitBreakerService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResilienceInterceptor,
+    },
+  ],
 })
 export class ApiGatewayModule {}

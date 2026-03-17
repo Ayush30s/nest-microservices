@@ -1,12 +1,23 @@
-import { Controller, Get } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { Controller, Get, Inject, Post } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { catchError, throwError, timeout } from 'rxjs';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(@Inject('USER_SERVICE') private userClient: ClientProxy) {}
 
-  @Get('getAllUsers')
-  getAllUsers() {
-    return this.usersService.getAllUsers();
+  @Get()
+  getUsers() {
+    return this.userClient.send({ cmd: 'get_users' }, {}).pipe(
+      timeout(5000),
+      catchError((err) => {
+        return throwError(() => new Error('User service unavailable',err));
+      }),
+    );
+  }
+
+  @Post()
+  createUser() {
+    this.userClient.emit('user_created', { id: 1, email: 'test@mail.com' });
   }
 }

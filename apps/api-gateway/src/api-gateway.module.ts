@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ApiGatewayController } from './api-gateway.controller';
-import { ApiGatewayService } from './api-gateway.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -9,21 +10,35 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
       {
         name: 'USER_SERVICE',
         transport: Transport.TCP,
-        options: { host: 'localhost', port: 3001 },
+        options: { host: 'localhost', port: 3002 },
       },
       {
         name: 'PRODUCT_SERVICE',
         transport: Transport.TCP,
-        options: { host: 'localhost', port: 3002 },
+        options: { host: 'localhost', port: 3001 },
       },
       {
         name: 'GYM_SERVICE',
         transport: Transport.TCP,
-        options: { host: 'localhost', port: 3003 },
+        options: { host: 'localhost', port: 3000 },
       },
     ]),
+
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60,
+          limit: 20,
+        },
+      ],
+    }),
   ],
-  controllers: [ApiGatewayController],
-  providers: [ApiGatewayService],
+
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class ApiGatewayModule {}

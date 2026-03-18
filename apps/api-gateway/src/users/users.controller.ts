@@ -1,10 +1,9 @@
-import { Controller, Get, Inject, Post } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
-import { catchError, throwError, timeout } from 'rxjs';
+import { Controller, Get } from '@nestjs/common';
+import { UserService } from './users.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(@Inject('USER_SERVICE') private userClient: ClientProxy) {}
+  constructor(private readonly usersService: UserService) {}
 
   @Get()
   getUsers() {

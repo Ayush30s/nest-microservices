@@ -1,17 +1,9 @@
-
-import { Inject, Injectable } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
-
+import { Injectable } from '@nestjs/common';
 @Injectable()
-export class UsersService {
-  constructor(
-    @Inject('USER_SERVICE') private userClient: ClientProxy,
-  ) {}
+export class UserService {
+  constructor(private readonly userClient: any) {}
 
-  getAllUsers() {
-    return this.userClient.send(
-      { cmd: 'get_all_users' },
-      {},
-    );
+  async getAllUsers() {
+    return this.userClient.send({ cmd: 'get_all_users' }, {});
   }
 }

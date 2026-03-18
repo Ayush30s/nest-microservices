@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { CircuitBreakerService } from './common/circuitBreaker';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ResilienceInterceptor } from './common/circuitBreakerInterceptor';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -38,6 +39,15 @@ import { ThrottlerGuard } from '@nestjs/throttler';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+  ],
+  controllers: [ApiGatewayController],
+  providers: [
+    ApiGatewayService,
+    CircuitBreakerService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResilienceInterceptor,
     },
   ],
 })

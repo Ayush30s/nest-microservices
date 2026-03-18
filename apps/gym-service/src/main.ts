@@ -1,15 +1,15 @@
 import { NestFactory } from '@nestjs/core';
-import { GymServiceModule } from './gym-service.module';
-import { AppModule } from 'src/app.module';
 import { Transport } from '@nestjs/microservices';
+import { GymServiceModule } from './gym-service.module';
 
 async function bootstrap() {
-  const app = await NestFactory.createMicroservice(AppModule, {
+  const app = await NestFactory.createMicroservice(GymServiceModule, {
+    transport: Transport.TCP,
     options: {
-      transport: Transport.TCP,
-      port: 3000,
+      port: 3001,
     },
   });
   await app.listen();
 }
+
 bootstrap();

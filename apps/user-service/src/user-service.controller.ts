@@ -3,7 +3,7 @@ import { EventPattern, MessagePattern } from '@nestjs/microservices';
 
 @Controller()
 export class UserServiceController {
-  @MessagePattern({ cmd: 'get_users' })
+  @MessagePattern({ cmd: 'get_all_users' })
   getUsers() {
     return [
       { id: 1, name: 'John' },

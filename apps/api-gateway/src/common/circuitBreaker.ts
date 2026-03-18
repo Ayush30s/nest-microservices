@@ -11,22 +11,22 @@ import {
 
 @Injectable()
 export class CircuitBreakerService {
-  constructor(private readonly logger: Logger) {}
+  constructor() {}
+  private readonly logger = new Logger(CircuitBreakerService.name);
   private breakers = new Map<string, any>();
 
-  getBreaker(serviceName: string, action: any) {
-    if (!this.breakers.has(serviceName)) {
-      const breaker = this.createBreaker(action, serviceName);
-      this.breakers.set(serviceName, breaker);
+  getBreaker(serviceName: string, endPoint: string, action?: any) {
+    const key = `${serviceName}:${endPoint}`;
+
+    if (!this.breakers.has(key)) {
+      const breaker = this.createBreaker(action, key);
+      this.breakers.set(key, breaker);
     }
 
-    return this.breakers.get(serviceName);
+    return this.breakers.get(key);
   }
 
-  createBreaker<T>(
-    action: (...args: any[]) => Promise<T>,
-    serviceName?: string,
-  ) {
+  createBreaker<T>(action: (...args: any[]) => Promise<T>, key?: string) {
     const breaker = new CircuitBreaker(action, {
       timeout: 3000,
       errorThresholdPercentage: 50,
@@ -34,23 +34,23 @@ export class CircuitBreakerService {
     });
 
     breaker.on('open', () => {
-      this.logger.error(`🔴 ${serviceName || 'Service'} Circuit OPEN`);
+      this.logger.error(`🔴 ${key || 'Service'} Circuit OPEN`);
     });
 
     breaker.on('halfOpen', () => {
-      this.logger.log(`🟡 ${serviceName || 'Service'} Circuit HALF-OPEN`);
+      this.logger.log(`🟡 ${key || 'Service'} Circuit HALF-OPEN`);
     });
 
     breaker.on('close', () => {
-      this.logger.log(`🟢 ${serviceName || 'Service'} Circuit CLOSED`);
+      this.logger.log(`🟢 ${key || 'Service'} Circuit CLOSED`);
     });
 
     breaker.on('failure', () => {
-      this.logger.log(`❌ ${serviceName || 'Service'} Request failed`);
+      this.logger.log(`❌ ${key || 'Service'} Request failed`);
     });
 
     breaker.on('success', () => {
-      this.logger.log(`✅ ${serviceName || 'Service'} Request success`);
+      this.logger.log(`✅ ${key || 'Service'} Request success`);
     });
 
     return breaker;

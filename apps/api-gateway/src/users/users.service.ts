@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 @Injectable()
 export class UserService {
-  constructor(private readonly userClient: any) {}
+  constructor(
+    @Inject('USER_SERVICE') private readonly userClient: ClientProxy,
+  ) {}
 
   async getAllUsers() {
-    return this.userClient.send({ cmd: 'get_all_users' }, {});
+    return lastValueFrom(this.userClient.send({ cmd: 'get_all_users' }, {}));
   }
 }

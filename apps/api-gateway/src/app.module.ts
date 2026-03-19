@@ -3,10 +3,12 @@ import { CircuitBreakerService } from './common/circuitBreaker';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { UsersModule } from './users/users.module';
+import { ProductsModule } from './product/product.module';
 
 @Module({
   imports: [
     UsersModule,
+    ProductsModule,
     ThrottlerModule.forRoot({
       throttlers: [
         {

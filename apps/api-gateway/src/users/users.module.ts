@@ -10,7 +10,7 @@ import { CircuitBreakerService } from '../common/circuitBreaker';
       {
         name: 'USER_SERVICE',
         transport: Transport.TCP,
-        options: { host: 'localhost', port: 3003 },
+        options: { host: 'localhost', port: 4003 },
       },
     ]),
   ],

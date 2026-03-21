@@ -10,6 +10,4 @@ export class UserServiceService {
   registerUser(createUserDto: CreateUserDto) {
     return createUserDto;
   }
-
-  // hosh me ao abhijit
 }

@@ -9,9 +9,11 @@ import {
 } from '@nestjs/common';
 import { CircuitBreakerService } from '../common/circuitBreaker';
 import { UserService } from './users.service';
+import { CreateUserDto } from './user.dto';
 
 @Controller('user')
 export class UsersController {
+  private readonly cbkey = 'user-service';
   private readonly logger = new Logger(UsersController.name);
 
   constructor(
@@ -33,7 +35,13 @@ export class UsersController {
   }
 
   @Post('register')
-  registerUser(@Body() body: RegisterDTO, @Req() req: Request) {
-    
+  registerUser(@Body() createUserDto: CreateUserDto, @Req() req: Request) {
+    const breaker = this.cbService.getBreaker(
+      this.cbkey,
+      'get-users',
+      async () => this.userService.registerUser(createUserDto),
+    );
+
+    return breaker.fire();
   }
 }

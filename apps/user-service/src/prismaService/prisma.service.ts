@@ -5,7 +5,7 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-import { PrismaClient } from 'apps/user-service/generated/prisma/client';
+import { PrismaClient } from '@prisma/client/extension';
 
 @Injectable()
 export class PrismaService
@@ -22,12 +22,5 @@ export class PrismaService
   async onModuleDestroy() {
     this.logger.log('user-service Database disconnected successfully');
     await this.$disconnect();
-  }
-
-  async enableShutdownHooks(app: INestApplication) {
-    this.logger.log('user-service app stopped successfully');
-    this.$on('beforeExit', async () => {
-      await app.close(); // graceful shutdown
-    });
   }
 }

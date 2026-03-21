@@ -1,8 +1,10 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, MessagePattern } from '@nestjs/microservices';
 
 @Controller()
 export class UserServiceController {
+  private readonly logger = new Logger(UserServiceController.name);
+
   @MessagePattern({ cmd: 'get_all_users' })
   getUsers() {
     return [

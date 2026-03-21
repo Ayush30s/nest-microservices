@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+nest-microservices/apps/product-service/.env
+nest-microservices/apps/user-service/.env
+
 # Logs
 logs
 *.log

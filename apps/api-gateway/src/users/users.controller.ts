@@ -1,11 +1,19 @@
-import { Controller, Get, Inject, Post } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
-import { catchError, throwError, timeout } from 'rxjs';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Logger,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { CircuitBreakerService } from '../common/circuitBreaker';
 import { UserService } from './users.service';
 
-@Controller('users')
+@Controller('user')
 export class UsersController {
+  private readonly logger = new Logger(UsersController.name);
+
   constructor(
     private readonly cbService: CircuitBreakerService,
     private readonly userService: UserService,
@@ -13,6 +21,8 @@ export class UsersController {
 
   @Get()
   async getUsers() {
+    this.logger.log('this is register');
+
     const breaker = this.cbService.getBreaker(
       'user-service',
       'get-users',
@@ -20,5 +30,10 @@ export class UsersController {
     );
 
     return breaker.fire();
+  }
+
+  @Post('register')
+  registerUser(@Body() body: RegisterDTO, @Req() req: Request) {
+    
   }
 }

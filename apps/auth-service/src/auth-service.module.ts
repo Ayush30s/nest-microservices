@@ -1,4 +1,4 @@
-import { JwtStrategy } from 'apps/api-gateway/src/auth/jwt.startegy';
+import { JwtStrategy } from 'libs/common/auth/jwt.startegy';
 import { AuthService } from './auth-service.service';
 import { AuthController } from './auth-service.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';

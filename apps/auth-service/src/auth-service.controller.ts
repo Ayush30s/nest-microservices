@@ -10,10 +10,10 @@ import {
 import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth-service.service';
-import { RegisterDTO, SigninDto } from 'libs/common/DTO/user.dto';
+import { RegisterDTO, SigninDto } from 'libs/common/DTO/auth.dto';
 import { MessagePattern } from '@nestjs/microservices';
 
-@Controller('auth')
+@Controller()
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

@@ -23,6 +23,12 @@ export class CircuitBreakerService {
       this.breakers.set(key, breaker);
     }
 
+    const breaker = this.breakers.get(key);
+
+    if (action) {
+      breaker.action = action;
+    }
+
     return this.breakers.get(key);
   }
 
@@ -54,6 +60,25 @@ export class CircuitBreakerService {
     });
 
     return breaker;
+  }
+
+  async execute<T>(
+    serviceName: string,
+    endPointcmd: string,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    const key = `${serviceName}:${endPointcmd}`;
+
+    const breaker = this.getBreaker(serviceName, endPointcmd, async () => {
+      try {
+        return await fn();
+      } catch (err: any) {
+        this.logger.error(`❌ Error in ${key}: ${err?.message}`, err?.stack);
+        throw err;
+      }
+    });
+
+    return breaker.fire();
   }
 
   retryStrategy<T>(): OperatorFunction<T, T> {

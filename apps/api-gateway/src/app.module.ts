@@ -4,6 +4,7 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { UsersModule } from './users/users.module';
 import { ProductsModule } from './product/product.module';
+import { PrimsaModule } from 'libs/common/prismaService/primsa.module';
 
 @Module({
   imports: [

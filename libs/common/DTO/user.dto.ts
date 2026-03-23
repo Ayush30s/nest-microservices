@@ -9,6 +9,7 @@ import {
   IsDateString,
   ValidateNested,
   Length,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -20,70 +21,70 @@ export enum Role {
 
 export class AddressDto {
   @IsString()
-  state: string;
+  state!: string;
 
   @IsString()
-  city: string;
+  city!: string;
 
   @IsString()
   @Length(6, 6)
-  pincode: string;
+  pincode!: string;
 }
 
 export class ProfileDto {
   @IsString()
-  gender: string;
+  gender!: string;
 
   @IsDateString()
-  dob: string;
+  dob!: string;
 
   @IsInt()
-  heightCm: number;
+  heightCm!: number;
 
   @IsInt()
-  weightKg: number;
+  weightKg!: number;
 
   @IsString()
-  profileImageUrl: string;
+  profileImageUrl!: string;
 
   @IsString()
-  address: string;
+  address!: string;
 
   @IsString()
-  bio: string;
+  bio!: string;
 
   @IsString()
-  contact_no: string;
+  contact_no!: string;
 }
 
 export class UserSessionDto {
   @IsString()
-  ipAddress: string; // fixed typo (apAddress -> ipAddress)
+  ipAddress!: string;
 
   @IsString()
-  device: string;
+  device!: string;
 
   @IsString()
-  platform: string;
+  platform!: string;
 
   @IsString()
-  refreshTokenHash: string;
+  refreshTokenHash!: string;
 
   @IsDateString()
-  expiresAt: string;
+  expiresAt!: string;
 }
 
 export class UserFollowDto {
   @IsInt()
-  followerId: number;
+  followerId!: number;
 
   @IsInt()
-  followingId: number;
+  followingId!: number;
 }
 
-export class CreateUserDto {
+export class RegisterDTO {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsOptional()
   @IsString()
@@ -92,7 +93,7 @@ export class CreateUserDto {
 
   @IsString()
   @MinLength(6)
-  password: string;
+  password!: string;
 
   @IsOptional()
   @IsEnum(Role)
@@ -115,6 +116,17 @@ export class CreateUserDto {
   @ValidateNested()
   @Type(() => ProfileDto)
   profile?: ProfileDto;
+}
+
+export class SigninDto {
+  @IsString()
+  @IsNotEmpty()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  password!: string;
 }
 
 export class UpdateUserDto {

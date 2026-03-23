@@ -1,13 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from 'apps/api-gateway/src/users/user.dto';
+import { Injectable, Logger } from '@nestjs/common';
+import { RegisterDTO } from 'libs/common/DTO/user.dto';
 
 @Injectable()
 export class UserServiceService {
+  private readonly logger = new Logger(UserServiceService.name);
+
   getHello(): string {
     return 'Hello World!';
   }
 
-  registerUser(createUserDto: CreateUserDto) {
-    return createUserDto;
+  registerUser(RegisterDTO: RegisterDTO) {
+    this.logger.debug(JSON.stringify(RegisterDTO));
+    return RegisterDTO;
   }
 }

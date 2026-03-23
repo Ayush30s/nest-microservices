@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { CircuitBreakerService } from '../common/circuitBreaker';
 import { UserService } from './users.service';
-import { CreateUserDto } from './user.dto';
+import { RegisterDTO } from '../../../../libs/common/DTO/user.dto';
 
 @Controller('user')
 export class UsersController {
@@ -21,27 +21,10 @@ export class UsersController {
     private readonly userService: UserService,
   ) {}
 
-  @Get()
-  async getUsers() {
-    this.logger.log('this is register');
-
-    const breaker = this.cbService.getBreaker(
-      'user-service',
-      'get-users',
-      async () => this.userService.getAllUsers(),
-    );
-
-    return breaker.fire();
-  }
-
   @Post('register')
-  registerUser(@Body() createUserDto: CreateUserDto, @Req() req: Request) {
-    const breaker = this.cbService.getBreaker(
-      this.cbkey,
-      'get-users',
-      async () => this.userService.registerUser(createUserDto),
+  registerUser(@Body() RegisterDTO: RegisterDTO) {
+    return this.cbService.execute(this.cbkey, 'register-user', () =>
+      this.userService.registerUser(RegisterDTO),
     );
-
-    return breaker.fire();
   }
 }

@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
-import { RegisterDTO } from '../../../../libs/common/DTO/user.dto';
+import { RegisterDTO } from '../../../../libs/common/DTO/auth.dto';
 @Injectable()
 export class UserService {
   constructor(

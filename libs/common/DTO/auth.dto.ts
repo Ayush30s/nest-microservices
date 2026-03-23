@@ -3,7 +3,6 @@ import {
   IsString,
   MinLength,
   IsOptional,
-  IsEnum,
   IsBoolean,
   IsInt,
   IsDateString,
@@ -13,12 +12,13 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export enum Role {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
-  TRAINER = 'TRAINER',
+// ================= ROLE DTO =================
+export class RoleDto {
+  @IsString()
+  name!: string; // USER, ADMIN, TRAINER
 }
 
+// ================= ADDRESS DTO =================
 export class AddressDto {
   @IsString()
   state!: string;
@@ -31,6 +31,7 @@ export class AddressDto {
   pincode!: string;
 }
 
+// ================= PROFILE DTO =================
 export class ProfileDto {
   @IsString()
   gender!: string;
@@ -57,9 +58,10 @@ export class ProfileDto {
   contact_no!: string;
 }
 
+// ================= USER SESSION DTO =================
 export class UserSessionDto {
   @IsString()
-  ipAddress!: string;
+  apAddress!: string; // match schema
 
   @IsString()
   device!: string;
@@ -74,6 +76,7 @@ export class UserSessionDto {
   expiresAt!: string;
 }
 
+// ================= USER FOLLOW DTO =================
 export class UserFollowDto {
   @IsInt()
   followerId!: number;
@@ -82,6 +85,7 @@ export class UserFollowDto {
   followingId!: number;
 }
 
+// ================= REGISTER DTO =================
 export class RegisterDTO {
   @IsEmail()
   email!: string;
@@ -96,8 +100,8 @@ export class RegisterDTO {
   password!: string;
 
   @IsOptional()
-  @IsEnum(Role)
-  role?: Role;
+  @IsString()
+  role?: string; // will match Role.name in DB
 
   @IsOptional()
   @IsBoolean()
@@ -116,10 +120,16 @@ export class RegisterDTO {
   @ValidateNested()
   @Type(() => ProfileDto)
   profile?: ProfileDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UserSessionDto)
+  session?: UserSessionDto;
 }
 
+// ================= LOGIN DTO =================
 export class SigninDto {
-  @IsString()
+  @IsEmail()
   @IsNotEmpty()
   email!: string;
 
@@ -129,6 +139,7 @@ export class SigninDto {
   password!: string;
 }
 
+// ================= UPDATE USER DTO =================
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
@@ -136,8 +147,8 @@ export class UpdateUserDto {
   name?: string;
 
   @IsOptional()
-  @IsEnum(Role)
-  role?: Role;
+  @IsString()
+  role?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -156,4 +167,16 @@ export class UpdateUserDto {
   @ValidateNested()
   @Type(() => ProfileDto)
   profile?: ProfileDto;
+}
+
+// ================= CREATE FOLLOW DTO =================
+export class CreateFollowDto {
+  @IsInt()
+  followingId!: number;
+}
+
+// ================= UNFOLLOW DTO =================
+export class UnfollowDto {
+  @IsInt()
+  followingId!: number;
 }

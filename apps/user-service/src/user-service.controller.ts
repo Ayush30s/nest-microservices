@@ -1,7 +1,7 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { UserServiceService } from './user-service.service';
-import { RegisterDTO } from 'libs/common/DTO/user.dto';
+import { RegisterDTO } from 'libs/common/DTO/auth.dto';
 
 @Controller()
 export class UserServiceController {

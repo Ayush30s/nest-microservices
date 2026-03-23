@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { CircuitBreakerService } from '../common/circuitBreaker';
 import { UserService } from './users.service';
-import { RegisterDTO } from '../../../../libs/common/DTO/user.dto';
+import { RegisterDTO } from '../../../../libs/common/DTO/auth.dto';
 
 @Controller('user')
 export class UsersController {

@@ -19,6 +19,7 @@ export class AuthService {
   }
 
   async registerUser(registerDto: RegisterDTO) {
+    this.logger.debug(registerDto);
     return await lastValueFrom(
       this.client.send({ cmd: 'register-user' }, registerDto),
     );

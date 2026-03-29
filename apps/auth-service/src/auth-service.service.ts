@@ -56,12 +56,6 @@ export class AuthServiceService {
         throw new Error('Invalid Role');
       }
 
-      let imageUrl = '';
-      if (registerDto.profileImageUrl) {
-        const awsS3Res = await this.aws.uploadFile(registerDto.profileImageUrl);
-        imageUrl = awsS3Res.url;
-      }
-
       const user = await tx.user.create({
         data: {
           email: registerDto.email,
@@ -69,13 +63,13 @@ export class AuthServiceService {
           passwordHash: hashedPassword,
 
           role: {
-            connect: { id: role.id },
+            connect: { name: registerDto.role ?? 'USER' },
           },
 
-          isActive: registerDto.isActive ?? true,
-          isEmailVerified: registerDto.isEmailVerified ?? false,
-          profileImageUrl: imageUrl,
+          isActive: true,
+          isEmailVerified: false,
 
+          profileImageUrl: registerDto.profileImageUrl ?? null,
           address: registerDto.address
             ? {
                 create: {

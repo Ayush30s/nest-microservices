@@ -100,11 +100,11 @@ export class RegisterDTO {
 
   @IsOptional()
   @IsString()
-  profileImageUrl?: string;
+  profileImageUrl?: string; // ✅ FINAL URL after S3 upload
 
   @IsOptional()
   @IsString()
-  role?: string; // will match Role.name in DB
+  role?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -123,11 +123,6 @@ export class RegisterDTO {
   @ValidateNested()
   @Type(() => ProfileDto)
   profile?: ProfileDto;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => UserSessionDto)
-  session?: UserSessionDto;
 }
 
 // ================= LOGIN DTO =================

@@ -39,6 +39,7 @@ model User {
   email        String  @unique
   name         String?
   passwordHash String
+  profileImageUrl   String?
 
   roleId Int
   role   Role? @relation(fields: [roleId], references: [id])
@@ -74,7 +75,7 @@ model Profile {
   dob             DateTime
   heightCm        Int
   weightKg        Int
-  profileImageUrl String
+  profileImageUrl   String?  
   address         String
   bio             String
   contact_no      String

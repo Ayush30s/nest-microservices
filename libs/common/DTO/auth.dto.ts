@@ -100,6 +100,10 @@ export class RegisterDTO {
 
   @IsOptional()
   @IsString()
+  profileImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   role?: string; // will match Role.name in DB
 
   @IsOptional()

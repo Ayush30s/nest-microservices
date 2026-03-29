@@ -3,6 +3,7 @@ import { AuthServiceController } from './auth-service.controller';
 import { AuthServiceService } from './auth-service.service';
 import { PrismaModule } from 'libs/common/prismaConfig/primsa.module';
 import { ConfigModule } from '@nestjs/config';
+import { AwsModule } from 'libs/common/aws/aws.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { ConfigModule } from '@nestjs/config';
       envFilePath: 'apps/auth-service/.env',
     }),
     PrismaModule,
+    AwsModule,
   ],
   controllers: [AuthServiceController],
   providers: [AuthServiceService],

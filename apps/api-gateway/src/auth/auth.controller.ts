@@ -1,7 +1,8 @@
-import { Body, Controller, Logger, Post } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RoleDto } from 'libs/common/DTO/auth.dto';
+import { RegisterDTO, RoleDto, SigninDto } from 'libs/common/DTO/auth.dto';
 import { CircuitBreakerService } from '../common/circuitBreaker';
+import type { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -18,9 +19,31 @@ export class AuthController {
     const breaker = this.cbBreaker.getBreaker(
       this.key,
       'create-role',
-      async () => await this.authService.createRole(roleDto),
+      async () => this.authService.createRole(roleDto),
     );
 
-    breaker.fire();
+    return breaker.fire();
+  }
+
+  @Post('signin')
+  async signUser(@Body() singInDto: SigninDto) {
+    const breaker = this.cbBreaker.getBreaker(
+      this.key,
+      'signin',
+      async () => this.authService.signUser(singInDto),
+    );
+
+    return breaker.fire();
+  }
+
+  @Post('register')
+  async registerUser(@Body() registerDto: RegisterDTO) {
+    const breaker = this.cbBreaker.getBreaker(
+      this.key,
+      'register',
+      async () => this.authService.registerUser(registerDto),
+    );
+
+    return breaker.fire();
   }
 }

@@ -6,18 +6,19 @@ import {
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { v4 as uuid } from 'uuid';
-
 @Injectable()
 export class AwsService {
   private readonly logger = new Logger(AwsService.name);
   private readonly s3: S3Client;
   private readonly bucket: string;
+  private readonly region: string; // ✅ ADD THIS
 
   constructor(private readonly configService: ConfigService) {
     this.bucket = this.configService.getOrThrow<string>('AWS_BUCKET_NAME');
+    this.region = this.configService.getOrThrow<string>('AWS_REGION'); // ✅ STORE IT
 
     this.s3 = new S3Client({
-      region: this.configService.getOrThrow<string>('AWS_REGION'),
+      region: this.region,
     });
   }
 
@@ -26,6 +27,7 @@ export class AwsService {
     const folder = isImage ? 'images' : 'videos';
 
     const key = `${folder}/${uuid()}-${file.originalname}`;
+
     await this.s3.send(
       new PutObjectCommand({
         Bucket: this.bucket,
@@ -35,23 +37,26 @@ export class AwsService {
       }),
     );
 
+    const url = `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`; // ✅ FIXED
+
     return {
       bucket: this.bucket,
       key,
+      url,
       type: isImage ? 'image' : 'video',
     };
   }
 
-  async deleteFile(FileKey: string) {
+  async deleteFile(fileKey: string) {
     try {
       await this.s3.send(
         new DeleteObjectCommand({
           Bucket: this.bucket,
-          Key: FileKey,
+          Key: fileKey,
         }),
       );
     } catch (error) {
-      this.logger.error('File deletion failed');
+      this.logger.error('File deletion failed', error);
     }
   }
 }

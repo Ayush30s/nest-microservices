@@ -31,9 +31,4 @@ export class UsersController {
 
     return breaker.fire();
   }
-
-  @Post('register')
-  registerUser(@Body() body: RegisterDTO, @Req() req: Request) {
-    
-  }
 }

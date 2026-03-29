@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  users User[]
+
+  createdAt DateTime @default(now())
+
+  @@map("roles")
+}
+
+model RefreshToken {
+  id    Int    @id @default(autoincrement())
+  token String @unique
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model User {
+  id           Int     @id @default(autoincrement())
+  email        String  @unique
+  name         String?
+  passwordHash String
+
+  roleId Int
+  role   Role @relation(fields: [roleId], references: [id])
+
+  refreshTokens   RefreshToken[]
+  isActive        Boolean?       @default(true)
+  isEmailVerified Boolean?       @default(false)
+  lastLoginAt     DateTime?      @default(now())
+  created_at      DateTime       @default(now())
+  updated_at      DateTime?
+  address         Address?
+  profile         Profile?
+  userSession     UserSession?
+  userFollower    UserFollows[]  @relation("FollowerRelation")
+  userFollowing   UserFollows[]  @relation("FollowingRelation")
+
+  @@map("users")
+}
+
+model Address {
+  id      Int    @id @default(autoincrement())
+  state   String
+  city    String
+  pincode String
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model Profile {
+  id              Int       @id @default(autoincrement())
+  gender          String
+  dob             DateTime
+  heightCm        Int
+  weightKg        Int
+  profileImageUrl String
+  address         String
+  bio             String
+  contact_no      String
+  created_at      DateTime  @default(now())
+  updated_at      DateTime?
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model UserSession {
+  id               Int      @id @default(autoincrement())
+  apAddress        String
+  device           String
+  platform         String
+  refreshTokenHash String
+  expiresAt        DateTime
+  created_at       DateTime @default(now())
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model UserFollows {
+  id Int @id @default(autoincrement())
+
+  followerId   Int
+  followerUser User @relation("FollowerRelation", fields: [followerId], references: [id])
+
+  followingId   Int
+  followingUser User @relation("FollowingRelation", fields: [followingId], references: [id])
+
+  created_at DateTime @default(now())
+}

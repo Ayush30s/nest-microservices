@@ -1,20 +1,28 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { RegisterDTO, RoleDto, SigninDto } from 'libs/common/DTO/auth.dto';
 import { PrismaService } from 'libs/common/prismaConfig/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { AwsService } from 'libs/common/aws/aws.service';
+import { JwtService } from '@nestjs/jwt';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthServiceService {
   private readonly logger = new Logger(AuthServiceService.name);
 
   constructor(
-    private readonly prism: PrismaService,
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
     private readonly aws: AwsService,
   ) {}
 
   async createRole(roleDto: RoleDto) {
-    const res = await this.prism.role.upsert({
+    const res = await this.prisma.role.upsert({
       where: {
         name: roleDto.name,
       },
@@ -26,18 +34,34 @@ export class AuthServiceService {
 
     return `role created: ${JSON.stringify(res)}`;
   }
-
-  async signIn(singInDto: SigninDto) {
-    const res = await this.prism.user.create({
-      data: {
-        email: singInDto.email,
-        passwordHash: singInDto.password,
-      },
+  async signIn(signinDTO: SigninDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: signinDTO.email },
     });
+
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    const isPasswordValid = await bcrypt.compare(
+      signinDTO.password,
+      user.passwordHash,
+    );
+
+    if (!isPasswordValid)
+      throw new UnauthorizedException('Invalid credentials');
+
+    const payload = {
+      id: user.id,
+      email: user.email,
+      role: user.roleId,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+
+    return { accessToken, payload };
   }
 
   async registerUser(registerDto: RegisterDTO) {
-    return await this.prism.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findUnique({
         where: { email: registerDto.email },
       });

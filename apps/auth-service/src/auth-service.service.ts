@@ -2,14 +2,21 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { RegisterDTO, RoleDto, SigninDto } from 'libs/common/DTO/auth.dto';
+import {
+  ProfileDto,
+  RegisterDTO,
+  RoleDto,
+  SigninDto,
+} from 'libs/common/DTO/auth.dto';
 import { PrismaService } from 'libs/common/prismaConfig/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { AwsService } from 'libs/common/aws/aws.service';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
+import { profile } from 'console';
 
 @Injectable()
 export class AuthServiceService {

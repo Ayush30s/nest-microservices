@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Logger,
+  Param,
   Post,
   Req,
   Res,
@@ -11,7 +12,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDTO, RoleDto, SigninDto } from 'libs/common/DTO/auth.dto';
+import {
+  ProfileDto,
+  RegisterDTO,
+  RoleDto,
+  SigninDto,
+} from 'libs/common/DTO/auth.dto';
 import { CircuitBreakerService } from '../common/circuitBreaker';
 import type { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -62,6 +68,7 @@ export class AuthController {
     this.logger.debug(`singin controller in api gateway ${singInDto}`);
     return breaker.fire();
   }
+
   @Post('register')
   @UseInterceptors(FileInterceptor('profileImageUrl'))
   async registerUser(

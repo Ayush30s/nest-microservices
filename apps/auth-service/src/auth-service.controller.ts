@@ -1,7 +1,12 @@
 import { Controller, Get, Logger, Res, UseGuards } from '@nestjs/common';
 import { AuthServiceService } from './auth-service.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { RegisterDTO, RoleDto, SigninDto } from 'libs/common/DTO/auth.dto';
+import {
+  ProfileDto,
+  RegisterDTO,
+  RoleDto,
+  SigninDto,
+} from 'libs/common/DTO/auth.dto';
 import type { Response } from 'express';
 import { JwtAuthGuard } from 'libs/common/auth/jwt-auth.guard';
 

@@ -1,20 +1,25 @@
 import { Controller, Logger } from '@nestjs/common';
-import { EventPattern, MessagePattern } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
+import { ProfileDto } from 'libs/common/DTO/auth.dto';
+import { UserServiceService } from './user-service.service';
 
 @Controller()
 export class UserServiceController {
   private readonly logger = new Logger(UserServiceController.name);
 
-  @MessagePattern({ cmd: 'get_all_users' })
-  getUsers() {
-    return [
-      { id: 1, name: 'John' },
-      { id: 2, name: 'Alice' },
-    ];
+  constructor(private readonly userseviceService: UserServiceService) {}
+
+  @MessagePattern({
+    cmd: 'upsert-profile',
+  })
+  async upsertProfile(@Payload() profileDto: ProfileDto) {
+    return await this.userseviceService.upsertProfile(profileDto);
   }
 
-  @EventPattern('user_created')
-  handleUserCreated(data: any) {
-    console.log(`user created successfully ${data}`);
+  @MessagePattern({
+    cmd: 'get-profile',
+  })
+  async getProfile(@Payload() id: Number) {
+    return await this.userseviceService.getProfile(id);
   }
 }

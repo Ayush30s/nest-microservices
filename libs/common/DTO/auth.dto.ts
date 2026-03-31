@@ -18,6 +18,7 @@ export class RoleDto {
   name!: string; // USER, ADMIN, TRAINER
 }
 
+// ================= ADDRESS DTO =================
 export class AddressDto {
   @IsString()
   state!: string;
@@ -32,20 +33,27 @@ export class AddressDto {
 
 // ================= PROFILE DTO =================
 export class ProfileDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsString()
   gender!: string;
 
   @IsDateString()
   dob!: string;
 
+  @Type(() => Number) // 🔥 auto transform
   @IsInt()
   heightCm!: number;
 
+  @Type(() => Number)
   @IsInt()
   weightKg!: number;
 
+  @IsOptional() // ✅ FIXED
   @IsString()
-  profileImageUrl!: string;
+  profileImageUrl?: string;
 
   @IsString()
   address!: string;
@@ -54,13 +62,14 @@ export class ProfileDto {
   bio!: string;
 
   @IsString()
+  @Length(10, 10)
   contact_no!: string;
 }
 
 // ================= USER SESSION DTO =================
 export class UserSessionDto {
   @IsString()
-  apAddress!: string; // match schema
+  apAddress!: string;
 
   @IsString()
   device!: string;
@@ -77,9 +86,11 @@ export class UserSessionDto {
 
 // ================= USER FOLLOW DTO =================
 export class UserFollowDto {
+  @Type(() => Number)
   @IsInt()
   followerId!: number;
 
+  @Type(() => Number)
   @IsInt()
   followingId!: number;
 }
@@ -100,16 +111,18 @@ export class RegisterDTO {
 
   @IsOptional()
   @IsString()
-  profileImageUrl?: string; // ✅ FINAL URL after S3 upload
+  profileImageUrl?: string;
 
   @IsOptional()
   @IsString()
   role?: string;
 
+  @Type(() => Boolean)
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 
+  @Type(() => Boolean)
   @IsOptional()
   @IsBoolean()
   isEmailVerified?: boolean;
@@ -169,12 +182,14 @@ export class UpdateUserDto {
 
 // ================= CREATE FOLLOW DTO =================
 export class CreateFollowDto {
+  @Type(() => Number)
   @IsInt()
   followingId!: number;
 }
 
 // ================= UNFOLLOW DTO =================
 export class UnfollowDto {
+  @Type(() => Number)
   @IsInt()
   followingId!: number;
 }

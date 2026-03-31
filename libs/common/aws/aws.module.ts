@@ -4,7 +4,12 @@ import { AwsService } from './aws.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+  ],
   controllers: [AwsController],
   providers: [AwsService],
   exports: [AwsService],

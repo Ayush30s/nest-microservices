@@ -35,9 +35,9 @@ model RefreshToken {
 }
 
 model User {
-  id           Int     @id @default(autoincrement())
-  email        String  @unique
-  slug         String  @unique()
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  slug         String?  @unique()
   name         String?
   passwordHash String
   profileImageUrl   String?

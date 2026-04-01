@@ -80,7 +80,7 @@ export class AuthServiceService {
       const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
       const role = await tx.role.findUnique({
-        where: { name: registerDto.role ?? 'USER' },
+        where: { name: registerDto.role },
       });
 
       if (!role) {

@@ -18,7 +18,7 @@ import { JwtStrategy } from 'libs/common/auth/jwt.startegy';
         transport: Transport.TCP,
         options: {
           host: 'localhost',
-          port: 4004,
+          port: 3002,
         },
       },
     ]),

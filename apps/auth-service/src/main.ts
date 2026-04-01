@@ -7,7 +7,7 @@ async function bootstrap() {
     transport: Transport.TCP,
     options: {
       host: 'localhost',
-      port: 4004,
+      port: 3002,
     },
   });
 

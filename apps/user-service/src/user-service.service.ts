@@ -51,7 +51,7 @@ export class UserServiceService {
           bio: profileDto.bio,
           contact_no: profileDto.contact_no,
         },
-      })
+      });
 
       this.logger.debug(profile);
 

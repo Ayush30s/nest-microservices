@@ -31,7 +31,6 @@ jobs:
         run: |
           pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
           pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
-          pnpm exec prisma generate --schema apps/product-service/prisma/schema.prisma
           pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
 
       - name: Build services

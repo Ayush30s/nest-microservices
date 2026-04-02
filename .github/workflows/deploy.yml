@@ -45,7 +45,7 @@ jobs:
             set -e
 
             if [ ! -d ~/app ]; then
-              git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git ~/app
+              git clone https://github.com/Ayush30s/nest-microservices.git ~/app
             fi
 
             cd ~/app

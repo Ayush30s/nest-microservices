@@ -10,10 +10,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: ./nest-microservices
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,8 +46,6 @@ jobs:
             cd ~/app
             git fetch origin
             git reset --hard origin/master
-
-            cd nest-microservices
 
             pnpm install
             pnpm exec nest build

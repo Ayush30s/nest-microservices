@@ -25,7 +25,14 @@ jobs:
           version: 9
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Generate Prisma clients
+        run: |
+          pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
+          pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
+          pnpm exec prisma generate --schema apps/product-service/prisma/schema.prisma
+          pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
 
       - name: Build services
         run: |
@@ -60,7 +67,12 @@ jobs:
               npm install -g pm2
             fi
 
-            pnpm install
+            pnpm install --no-frozen-lockfile
+
+            pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
+            pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
+            pnpm exec prisma generate --schema apps/product-service/prisma/schema.prisma
+            pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
 
             pnpm exec nest build api-gateway
             pnpm exec nest build auth-service

@@ -53,7 +53,7 @@ export class UserServiceService {
         },
       });
 
-      this.logger.verbose(profile);
+      this.logger.debug(profile);
 
       return profile;
     });

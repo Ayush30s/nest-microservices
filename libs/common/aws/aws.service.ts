@@ -5,7 +5,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
-import { v4 as uuid } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class AwsService {
   private readonly logger = new Logger(AwsService.name);
@@ -26,7 +26,7 @@ export class AwsService {
     const isImage = file?.mimetype?.startsWith('image/');
     const folder = isImage ? 'images' : 'videos';
 
-    const key = `${folder}/${uuid()}-${file.originalname}`;
+    const key = `${folder}/${uuidv4()}-${file.originalname}`;
 
     await this.s3.send(
       new PutObjectCommand({

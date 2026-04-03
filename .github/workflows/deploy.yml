@@ -47,6 +47,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          command_timeout: 30m
           script: |
             set -e
 
@@ -72,10 +74,24 @@ jobs:
             pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
 
+            echo "Building api-gateway"
+            date
             pnpm exec nest build api-gateway
+
+            echo "Building auth-service"
+            date
             pnpm exec nest build auth-service
+
+            echo "Building gym-service"
+            date
             pnpm exec nest build gym-service
+
+            echo "Building product-service"
+            date
             pnpm exec nest build product-service
+
+            echo "Building user-service"
+            date
             pnpm exec nest build user-service
 
             pm2 delete all || true

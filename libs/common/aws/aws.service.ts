@@ -33,7 +33,7 @@ export class AwsService {
         Bucket: this.bucket,
         Key: key,
         Body: file.buffer,
-        ContentType: file.mimetype,
+        ContentType: file.mimetype
       }),
     );
 

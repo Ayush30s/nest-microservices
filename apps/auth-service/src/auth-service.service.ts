@@ -69,6 +69,8 @@ export class AuthServiceService {
 
   async registerUser(registerDto: RegisterDTO) {
     return await this.prisma.$transaction(async (tx) => {
+      this.logger.log('REGISTER INPUT:', registerDto);
+
       const existingUser = await tx.user.findUnique({
         where: { email: registerDto.email },
       });
@@ -132,6 +134,8 @@ export class AuthServiceService {
           profile: true,
         },
       });
+
+      this.logger.log('REGISTER OUTPUT:', registerDto);
 
       return user;
     });

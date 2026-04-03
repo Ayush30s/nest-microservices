@@ -84,6 +84,7 @@ export class AuthController {
       }),
     );
 
+    this.logger.debug(`singin controller in api gateway ${registerDto}`);
     return breaker.fire();
   }
 }

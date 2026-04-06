@@ -55,14 +55,15 @@ export class AuthController {
     const breaker = this.cbBreaker.getBreaker(this.key, 'signin', async () => {
       const result = await this.authService.signUser(singInDto);
 
-      res.cookie('access_token', result.accessToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
-        maxAge: 1000 * 60 * 60,
-      });
-
-      return result;
+      return res
+        .cookie('access_token', result.token, {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax',
+          maxAge: 1000 * 60 * 60,
+        })
+        .status(200)
+        .json(result);
     });
 
     this.logger.debug(`singin controller in api gateway ${singInDto}`);

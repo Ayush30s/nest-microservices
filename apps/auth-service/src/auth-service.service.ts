@@ -1,10 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  Logger,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import {
   ProfileDto,
   RegisterDTO,
@@ -17,6 +11,7 @@ import { AwsService } from 'libs/common/aws/aws.service';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { profile } from 'console';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class AuthServiceService {
@@ -46,15 +41,14 @@ export class AuthServiceService {
       where: { email: signinDTO.email },
     });
 
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user) throw new RpcException('Invalid credentials');
 
     const isPasswordValid = await bcrypt.compare(
       signinDTO.password,
       user.passwordHash,
     );
 
-    if (!isPasswordValid)
-      throw new UnauthorizedException('Invalid credentials');
+    if (!isPasswordValid) throw new RpcException('Invalid credentials');
 
     const payload = {
       id: user.id,

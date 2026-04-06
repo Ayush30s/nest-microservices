@@ -31,6 +31,14 @@ export class CircuitBreakerService {
       timeout: 3000,
       errorThresholdPercentage: 50,
       resetTimeout: 10000,
+
+      // ADD THIS LINE:
+      // The circuit won't trip until at least 5 requests have been made
+      // in the current statistical window.
+      volumeThreshold: 5,
+
+      // OPTIONAL: Define the timeframe for the stats (default is 10000ms)
+      rollingCountTimeout: 10000,
     });
 
     breaker.on('open', () => {

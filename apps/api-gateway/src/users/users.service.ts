@@ -11,7 +11,6 @@ export class UserService {
   ) {}
 
   async getAllUsers() {
-    this.logger.log('this is register');
     return lastValueFrom(this.userClient.send({ cmd: 'get_all_users' }, {}));
   }
 

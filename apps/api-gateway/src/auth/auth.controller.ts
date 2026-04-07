@@ -47,29 +47,29 @@ export class AuthController {
     return breaker.fire();
   }
 
-  @Post('signin')
-  async signUser(
-    @Body() singInDto: SigninDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const breaker = this.cbBreaker.getBreaker(this.key, 'signin', async () => {
-      const result = await this.authService.signUser(singInDto);
+  // controller
+@Post('signin')
+async signUser(
+  @Body() signInDto: SigninDto,
+  @Res({ passthrough: true }) res: Response,
+) {
+  const breaker = this.cbBreaker.getBreaker(
+    this.key,
+    'signin',
+    async (dto: SigninDto) => this.authService.signUser(dto),
+  );
 
-      return res
-        .cookie('access_token', result.token, {
-          httpOnly: true,
-          secure: false,
-          sameSite: 'lax',
-          maxAge: 1000 * 60 * 60,
-        })
-        .status(200)
-        .json(result);
-    });
+  const result = await breaker.fire(signInDto);
 
-    this.logger.debug(`singin controller in api gateway ${singInDto}`);
-    return breaker.fire();
-  }
+  res.cookie('access_token', result.token, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 60,
+  });
 
+  return result;
+}
   @Post('register')
   @UseInterceptors(FileInterceptor('profileImageUrl'))
   async registerUser(

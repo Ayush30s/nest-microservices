@@ -31,7 +31,7 @@ enum SubscriptionStatus {
 
 
 model Gym {
-  id Int @default(autoincrement())
+  id Int @id @default(autoincrement())
   
   name String 
   description String?
@@ -44,7 +44,7 @@ model Gym {
   memberships Membership[]
   classes     GymClass[]
 
-  reatedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([ownerId]) 
@@ -69,13 +69,18 @@ model Gym {
 // created_at: TIMESTAMP (Default Current Time) — The exact date and time the gym admin created this plan in the system.
 
 model Membership {
-  id  Int @default(autoincrement())
+  id  Int @id @default(autoincrement())
+  
+  gymId            Int            
+  gym              Gym            @relation(fields: [gymId], references: [id], onDelete: Cascade)
   
   name String 
   description String
 
   price Int
   duration_in_days Int
+
+  subscriptions    subscription[]
 
   created_at DateTime @default(now())
 }
@@ -99,7 +104,7 @@ model Membership {
 
 
 model subscription {
-  id Int @default(autoincrement())
+  id Int @id @default(autoincrement())
   user_id Int
   
   plan_id Int
@@ -132,7 +137,7 @@ model subscription {
 
 // created_at: TIMESTAMP (Default Current Time) — When the admin or trainer scheduled this class.
 model GymClass {
-  id Int @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   gymId Int
   gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
@@ -212,5 +217,3 @@ model GymClass {
 // If it is active, the user can walk into the gym. The system writes a new row in the attendance table with their user_id and the current time.
 
 // If the user wants to take a yoga class, the system looks at the classes table. If the count of current rows in class_bookings for that class_id is less than the max_capacity, the system creates a new row in class_bookings with their user_id and the class_id.
-
-

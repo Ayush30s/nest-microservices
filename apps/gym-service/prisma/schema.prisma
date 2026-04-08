@@ -14,10 +14,203 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model gym {
-  id Int @id @default(autoincrement())
-  name String
-  email String @unique
-  address String
-  username String @unique
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  SUSPENDED
 }
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING
+}
+
+
+model Gym {
+  id Int @default(autoincrement())
+  
+  name String 
+  description String?
+
+  ownerId     Int
+
+  maxMembers  Int?
+  isPrivate   Boolean  @default(false)
+
+  memberships Membership[]
+  classes     GymClass[]
+
+  reatedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId]) 
+  @@map("gyms")
+}
+
+// Since your users table is handled by an external User Service, all user_id and trainer_id fields are treated as external references.
+
+// 1. membership_plans Table
+// Purpose: Stores the different pricing packages the gym offers to its members.
+
+// id: UUID (Primary Key) — The unique identifier for this specific plan.
+
+// name: VARCHAR(100) (Unique, Not Null) — The display name of the package (e.g., "Monthly Standard", "Annual Premium", "Student Pass").
+
+// description: TEXT — A detailed breakdown of what the member gets with this plan (e.g., "Includes full gym access, free locker, and pool access").
+
+// price: DECIMAL(10, 2) (Not Null) — The cost the user must pay to buy this plan.
+
+// duration_in_days: INT (Not Null) — How long the plan is valid once purchased (e.g., 30 for a monthly plan, 365 for an annual plan).
+
+// created_at: TIMESTAMP (Default Current Time) — The exact date and time the gym admin created this plan in the system.
+
+model Membership {
+  id  Int @default(autoincrement())
+  
+  name String 
+  description String
+
+  price Int
+  duration_in_days Int
+
+  created_at DateTime @default(now())
+}
+
+// 2. subscriptions Table
+// Purpose: Acts as the active "contract" linking a specific user to a specific Membership plan.
+
+// id: UUID (Primary Key) — Unique identifier for this specific subscription record.
+
+// user_id: UUID (Not Null) — Refers to the ID from your external User Service. Tells you who bought the plan.
+
+// plan_id: UUID (Foreign Key -> membership_plans.id, Not Null) — Refers to the plan they bought so you know the rules/pricing associated with it.
+
+// start_date: DATE (Not Null) — The day the member's gym access begins.
+
+// end_date: DATE (Not Null) — The day the member's gym access expires (calculated using start_date + duration_in_days from the plan).
+
+// status: ENUM ('ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING') — The current state of the subscription. Used to quickly check if a user is currently allowed inside the gym.
+
+// created_at: TIMESTAMP (Default Current Time) — When this subscription was purchased/created in the database.
+
+
+model subscription {
+  id Int @default(autoincrement())
+  user_id Int
+  
+  plan_id Int
+  plan Membership @relation(fields: [plan_id], references: [id])
+
+  start_date DateTime @default(now()) 
+  end_date DateTime
+
+  status SubscriptionStatus @default(PENDING)
+
+  created_at DateTime @default(now())
+}
+
+// 3. classes Table
+// Purpose: Stores the schedule of specific group workouts or sessions hosted by trainers.
+
+// id: UUID (Primary Key) — Unique identifier for this specific class session.
+
+// title: VARCHAR(100) (Not Null) — The name of the class being taught (e.g., "Morning Yoga", "HIIT Bootcamp").
+
+// description: TEXT — Details about the class (e.g., "Bring your own mat. High intensity.").
+
+// trainer_id: UUID (Not Null) — Refers to the ID from your external User Service. Tells you which trainer is leading the class.
+
+// start_time: TIMESTAMP (Not Null) — The exact date and time the class begins.
+
+// end_time: TIMESTAMP (Not Null) — The exact date and time the class ends.
+
+// max_capacity: INT (Not Null) — The absolute maximum number of members allowed to book this class (e.g., 20).
+
+// created_at: TIMESTAMP (Default Current Time) — When the admin or trainer scheduled this class.
+model GymClass {
+  id Int @default(autoincrement())
+
+  gymId Int
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  title String
+  description String
+
+  trainer_id Int
+
+  start_time DateTime
+  end_time DateTime
+  
+  max_capacity Int
+
+  created_at DateTime
+
+  @@map("gym_classes")
+}
+
+// 4. class_bookings Table (Join Table)
+// Purpose: Acts as a reservation system. It tracks which members have signed up for which classes.
+
+// id: UUID (Primary Key) — Unique identifier for the booking receipt.
+
+// class_id: UUID (Foreign Key -> classes.id, Not Null) — Refers to the specific class being booked.
+
+// user_id: UUID (Not Null) — Refers to the ID from your external User Service. Tells you which member reserved the spot.
+
+// booking_status: ENUM ('CONFIRMED', 'CANCELLED', 'ATTENDED') — Tracks the state of the reservation. Did they book it? Did they cancel? Did they actually show up?
+
+// created_at: TIMESTAMP (Default Current Time) — When the user clicked "Book Class".
+
+// 5. attendance Table
+// Purpose: An access log. It tracks every time a member physically walks into the gym and taps their card/app.
+
+// id: UUID (Primary Key) — Unique identifier for this specific visit.
+
+// user_id: UUID (Not Null) — Refers to the ID from your external User Service. Tells you who just walked in the door.
+
+// check_in_time: TIMESTAMP (Not Null, Default Current Time) — The exact second the user scanned their ID at the front desk.
+
+// check_out_time: TIMESTAMP (Nullable) — The exact second the user left the gym. (Optional, as many gyms only track entry, not exit).
+
+// 6. payments Table
+// Purpose: An accounting ledger. It logs every single time money changes hands between a user and the gym.
+
+// id: UUID (Primary Key) — Unique identifier for the invoice/receipt.
+
+// user_id: UUID (Not Null) — Refers to the ID from your external User Service. Tells you who is paying.
+
+// subscription_id: UUID (Foreign Key -> subscriptions.id, Nullable) — If they are paying for a Membership, this links the payment to that specific contract. (It is nullable because a user might buy a one-off water bottle or guest pass that isn't a subscription).
+
+// amount: DECIMAL(10, 2) (Not Null) — The exact monetary value charged.
+
+// payment_method: ENUM ('CREDIT_CARD', 'CASH', 'BANK_TRANSFER', 'UPI') — How the user paid.
+
+// payment_status: ENUM ('SUCCESS', 'PENDING', 'FAILED', 'REFUNDED') — Tracks whether the money actually cleared the bank. You only grant gym access if this says 'SUCCESS'.
+
+// transaction_date: TIMESTAMP (Default Current Time) — When the payment was attempted or completed.
+
+// 7. trainer_profiles Table (Optional but Recommended)
+// Purpose: Since your User Service only holds generic data (email, password), this table holds gym-specific professional details for your staff.
+
+// trainer_id: UUID (Primary Key) — Matches the ID from your external User Service exactly.
+
+// specialization: VARCHAR(255) — What the trainer is good at (e.g., "Rehab, Powerlifting, Nutrition"). Displayed on their public profile for members.
+
+// bio: TEXT — A paragraph about the trainer's background and experience.
+
+// hourly_rate: DECIMAL(10, 2) — How much this trainer charges for 1-on-1 personal training sessions.
+
+// How the Data Relates to Each Other
+// When a user logs in, your frontend gets their user_id from your Auth Service.
+
+// You check the subscriptions table using that user_id to see if their status is 'ACTIVE'.
+
+// If it is active, the user can walk into the gym. The system writes a new row in the attendance table with their user_id and the current time.
+
+// If the user wants to take a yoga class, the system looks at the classes table. If the count of current rows in class_bookings for that class_id is less than the max_capacity, the system creates a new row in class_bookings with their user_id and the class_id.
+
+

@@ -1,9 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { ProductServiceModule } from './product-service.module';
+import { GymServiceModule } from './product-service.module';
 import { Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
-  const app = await NestFactory.createMicroservice(ProductServiceModule, {
+  const app = await NestFactory.createMicroservice(GymServiceModule, {
     transport: Transport.TCP,
     options: {
       port: 4002,

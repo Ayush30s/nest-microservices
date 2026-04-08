@@ -1,12 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
-import { ProductServiceService } from './product-service.service';
+import { GymServiceService } from './product-service.service';
 
 @Controller()
-export class ProductServiceController {
-  constructor(private readonly productServiceService: ProductServiceService) {}
+export class GymServiceController {
+  constructor(private readonly GymServiceService: GymServiceService) {}
 
   @Get()
   getHello(): string {
-    return this.productServiceService.getHello();
+    return this.GymServiceService.getHello();
   }
 }

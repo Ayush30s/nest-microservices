@@ -2,21 +2,23 @@ import { Controller, Get, Inject, Post } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError, throwError, timeout } from 'rxjs';
 import { CircuitBreakerService } from '../common/circuitBreaker';
-import { ProductService } from './product.service';
+import { GymService } from './gym.service';
 
-@Controller('product')
-export class ProductsController {
+@Controller('gym')
+export class GymController {
+  private cbKey = 'gym-service';
+
   constructor(
     private readonly cbService: CircuitBreakerService,
-    private readonly productService: ProductService,
+    private readonly GymService: GymService,
   ) {}
 
   @Get()
   async getUsers() {
     const breaker = this.cbService.getBreaker(
-      'product-service',
-      'get-products',
-      async () => this.productService.getAllProducts(),
+      this.cbKey,
+      'create-gyms',
+      async () => this.GymService.createGym(),
     );
 
     return breaker.fire();

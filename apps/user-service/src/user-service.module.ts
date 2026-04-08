@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { UserServiceController } from './user-service.controller';
 import { UserServiceService } from './user-service.service';
-import { PrismaModule } from 'libs/common/prismaConfig/primsa.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AwsModule } from 'libs/common/aws/aws.module';
+import { UserPrismaService } from './user-prisma.service';
 
 @Module({
   imports: [
@@ -11,10 +11,20 @@ import { AwsModule } from 'libs/common/aws/aws.module';
       isGlobal: true,
       envFilePath: 'apps/user-service/.env',
     }),
-    PrismaModule,
     AwsModule,
   ],
   controllers: [UserServiceController],
-  providers: [UserServiceService],
+  providers: [UserServiceService, UserPrismaService],
 })
-export class UserServiceModule {}
+export class UserServiceModule {
+  private logger = new Logger(UserServiceModule.name);
+  constructor(private readonly config: ConfigService) {
+    this.logger.verbose(`
+      -------------------------
+      User - Service env loaded : 
+      -----------------------------------------------------------
+      ${config.get<string>('DATABASE_URL')}
+      -----------------------------------------------------------
+      `);
+  }
+}

@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { AuthServiceController } from './auth-service.controller';
 import { AuthServiceService } from './auth-service.service';
-import { PrismaModule } from 'libs/common/prismaConfig/primsa.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AwsModule } from 'libs/common/aws/aws.module';
 import { JwtStrategy } from 'libs/common/auth/jwt.startegy';
 import { JwtModule } from '@nestjs/jwt';
+import { AuthPrismaService } from './auth-prisma.service';
 
 @Module({
   imports: [
@@ -17,10 +17,20 @@ import { JwtModule } from '@nestjs/jwt';
       secret: 'my-secret-ket986r4r',
       signOptions: { expiresIn: '1h' },
     }),
-    PrismaModule,
     AwsModule,
   ],
   controllers: [AuthServiceController],
-  providers: [AuthServiceService, JwtStrategy],
+  providers: [AuthServiceService, JwtStrategy, AuthPrismaService],
 })
-export class AuthServiceModule {}
+export class AuthServiceModule {
+  private logger = new Logger(AuthServiceModule.name);
+  constructor(private readonly config: ConfigService) {
+    this.logger.verbose(`
+      -------------------------
+      Auth - Service env loaded : 
+      -----------------------------------------------------------
+      ${config.get<string>('DATABASE_URL')}
+      -----------------------------------------------------------
+      `);
+  }
+}

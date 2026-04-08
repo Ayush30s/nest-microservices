@@ -5,13 +5,13 @@ import {
   RoleDto,
   SigninDto,
 } from 'libs/common/DTO/auth.dto';
-import { PrismaService } from 'libs/common/prismaConfig/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { AwsService } from 'libs/common/aws/aws.service';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { profile } from 'console';
 import { RpcException } from '@nestjs/microservices';
+import { AuthPrismaService } from './auth-prisma.service';
 
 @Injectable()
 export class AuthServiceService {
@@ -19,7 +19,7 @@ export class AuthServiceService {
 
   constructor(
     private readonly jwtService: JwtService,
-    private readonly prisma: PrismaService,
+    private readonly prisma: AuthPrismaService,
     private readonly aws: AwsService,
   ) {}
 

@@ -1,14 +1,14 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AwsService } from 'libs/common/aws/aws.service';
 import { ProfileDto } from 'libs/common/DTO/auth.dto';
-import { PrismaService } from 'libs/common/prismaConfig/prisma.service';
+import { UserPrismaService } from './user-prisma.service';
 
 @Injectable()
 export class UserServiceService {
   private readonly logger = new Logger(UserServiceService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: UserPrismaService,
     private readonly aws: AwsService,
   ) {}
 
@@ -46,7 +46,7 @@ export class UserServiceService {
           dob: new Date(profileDto.dob),
           heightCm: Number(profileDto.heightCm),
           weightKg: Number(profileDto.weightKg),
-          profileImageUrl: profileDto.profileImageUrl,
+          profileImageUrl: profileDto.profileImageUrl || '',
           address: profileDto.address,
           bio: profileDto.bio,
           contact_no: profileDto.contact_no,

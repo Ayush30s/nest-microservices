@@ -8,28 +8,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  USER
-  ADMIN
-  TRAINER
-}
-
 model User {
-  id              Int           @id @default(autoincrement())
-  email           String        @unique
-  name            String?
-  passwordHash    String
-  role            Role          @default(USER)
-  isActive        Boolean?      @default(true)
-  isEmailVerified Boolean?      @default(false)
-  lastLoginAt     DateTime?     @default(now())
-  created_at      DateTime      @default(now())
-  updated_at      DateTime?
-  address         Address?
-  profile         Profile?
-  userSession     UserSession?
-  userFollower    UserFollows[] @relation("FollowerRelation")
-  userFollowing   UserFollows[] @relation("FollowingRelation")
+  id            Int      @id @default(autoincrement())
+  authId        Int      @unique // Important: Maps to 'id' in the Auth Service!
+  email         String   @unique
+  slug          String? 
+  name          String?
+
+  address       Address?
+  profile       Profile?
+  
+  userFollower  UserFollows[]  @relation("FollowerRelation")
+  userFollowing UserFollows[]  @relation("FollowingRelation")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("users")
 }
 
 model Address {
@@ -38,8 +33,10 @@ model Address {
   city    String
   pincode String
 
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id])
+  userId  Int    @unique
+  user    User   @relation(fields: [userId], references: [id])
+
+  @@map("addresses")
 }
 
 model Profile {
@@ -48,38 +45,30 @@ model Profile {
   dob             DateTime
   heightCm        Int
   weightKg        Int
-  profileImageUrl String
-  address         String
-  bio             String
-  contact_no      String
-  created_at      DateTime  @default(now())
-  updated_at      DateTime?
+  profileImageUrl String?  
+  address         String    // (Note: You also have an Address model, you might want to remove this string field to avoid duplication)
+  bio             String?
+  contact_no      String?
+  
+  userId          Int       @unique
+  user            User      @relation(fields: [userId], references: [id])
 
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id])
-}
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-model UserSession {
-  id               Int      @id @default(autoincrement())
-  apAddress        String
-  device           String
-  platform         String
-  refreshTokenHash String
-  expiresAt        DateTime
-  created_at       DateTime @default(now())
-
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id])
+  @@map("profiles")
 }
 
 model UserFollows {
-  id Int @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
 
-  followerId   Int
-  followerUser User @relation("FollowerRelation", fields: [followerId], references: [id])
+  followerId    Int
+  followerUser  User     @relation("FollowerRelation", fields: [followerId], references: [id])
 
   followingId   Int
-  followingUser User @relation("FollowingRelation", fields: [followingId], references: [id])
+  followingUser User     @relation("FollowingRelation", fields: [followingId], references: [id])
 
-  created_at DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@map("user_follows")
 }

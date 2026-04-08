@@ -1,17 +1,10 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
-import {
-  ProfileDto,
-  RegisterDTO,
-  RoleDto,
-  SigninDto,
-} from 'libs/common/DTO/auth.dto';
+import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
+import { RegisterDTO, RoleDto, SigninDto } from 'libs/common/DTO/auth.dto';
 import * as bcrypt from 'bcrypt';
-import { AwsService } from 'libs/common/aws/aws.service';
 import { JwtService } from '@nestjs/jwt';
-import { Response } from 'express';
-import { profile } from 'console';
 import { RpcException } from '@nestjs/microservices';
 import { AuthPrismaService } from './auth-prisma.service';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class AuthServiceService {
@@ -20,7 +13,7 @@ export class AuthServiceService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: AuthPrismaService,
-    private readonly aws: AwsService,
+    @Inject('USER_SERVICE') private clientProxy: ClientProxy,
   ) {}
 
   async createRole(roleDto: RoleDto) {
@@ -36,9 +29,11 @@ export class AuthServiceService {
 
     return `role created: ${JSON.stringify(res)}`;
   }
+
   async signIn(signinDTO: SigninDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: signinDTO.email },
+      include: { role: true },
     });
 
     if (!user) throw new RpcException('Invalid credentials');
@@ -53,7 +48,7 @@ export class AuthServiceService {
     const payload = {
       id: user.id,
       email: user.email,
-      role: user.roleId,
+      role: user.role.name,
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -63,74 +58,56 @@ export class AuthServiceService {
 
   async registerUser(registerDto: RegisterDTO) {
     return await this.prisma.$transaction(async (tx) => {
-
       const existingUser = await tx.user.findUnique({
         where: { email: registerDto.email },
       });
 
       if (existingUser) {
-        throw new ConflictException('Email already registered');
+        throw new RpcException('Email already registered');
       }
 
       const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
+      const roleName = registerDto.role ?? 'USER';
       const role = await tx.role.findUnique({
-        where: { name: registerDto.role },
+        where: { name: roleName },
       });
 
       if (!role) {
-        throw new Error('Invalid Role');
+        throw new RpcException('Invalid Role');
       }
 
       const user = await tx.user.create({
         data: {
           email: registerDto.email,
-          name: registerDto.name,
           passwordHash: hashedPassword,
-
-          role: {
-            connect: { name: registerDto.role ?? 'USER' },
-          },
-
           isActive: true,
           isEmailVerified: false,
-
-          profileImageUrl: registerDto.profileImageUrl ?? null,
-          address: registerDto.address
-            ? {
-                create: {
-                  state: registerDto.address.state,
-                  city: registerDto.address.city,
-                  pincode: registerDto.address.pincode,
-                },
-              }
-            : undefined,
-
-          profile: registerDto.profile
-            ? {
-                create: {
-                  gender: registerDto.profile.gender,
-                  dob: new Date(registerDto.profile.dob),
-                  heightCm: registerDto.profile.heightCm,
-                  weightKg: registerDto.profile.weightKg,
-                  profileImageUrl: registerDto.profile.profileImageUrl,
-                  address: registerDto.profile.address,
-                  bio: registerDto.profile.bio,
-                  contact_no: registerDto.profile.contact_no,
-                },
-              }
-            : undefined,
+          role: {
+            connect: { name: role.name },
+          },
         },
         include: {
           role: true,
-          address: true,
-          profile: true,
         },
       });
 
-      this.logger.log('REGISTER OUTPUT:', registerDto);
+      this.clientProxy.emit('user-registered', {
+        authId: user.id,
+        email: user.email,
+        name: registerDto.name,
+        profileImageUrl: registerDto.profileImageUrl,
+        address: registerDto.address,
+        profile: registerDto.profile,
+      });
 
-      return user;
+      this.logger.log(
+        `REGISTER OUTPUT: Emitted user.registered for ${user.email}`,
+      );
+
+      const { passwordHash, ...safeUser } = user;
+
+      return safeUser;
     });
   }
 }

@@ -6,6 +6,7 @@ import { AwsModule } from 'libs/common/aws/aws.module';
 import { JwtStrategy } from 'libs/common/auth/jwt.startegy';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthPrismaService } from './auth-prisma.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
@@ -13,6 +14,16 @@ import { AuthPrismaService } from './auth-prisma.service';
       isGlobal: true,
       envFilePath: 'apps/auth-service/.env',
     }),
+    ClientsModule.register([
+      {
+        name: 'USER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: 'localhost',
+          port: 3001,
+        },
+      },
+    ]),
     JwtModule.register({
       secret: 'my-secret-ket986r4r',
       signOptions: { expiresIn: '1h' },

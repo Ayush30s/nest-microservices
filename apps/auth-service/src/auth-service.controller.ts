@@ -2,7 +2,6 @@ import { Controller, Get, Logger, Res, UseGuards } from '@nestjs/common';
 import { AuthServiceService } from './auth-service.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import {
-  ProfileDto,
   RegisterDTO,
   RoleDto,
   SigninDto,

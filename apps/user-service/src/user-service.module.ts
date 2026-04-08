@@ -17,7 +17,9 @@ import { UserPrismaService } from './user-prisma.service';
   providers: [UserServiceService, UserPrismaService],
 })
 export class UserServiceModule {
+  
   private logger = new Logger(UserServiceModule.name);
+
   constructor(private readonly config: ConfigService) {
     this.logger.verbose(`
       -------------------------

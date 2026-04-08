@@ -2,7 +2,6 @@ import { Inject, Injectable, Logger, UseGuards } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { JwtAuthGuard } from 'libs/common/auth/jwt-auth.guard';
 import {
-  ProfileDto,
   RegisterDTO,
   RoleDto,
   SigninDto,

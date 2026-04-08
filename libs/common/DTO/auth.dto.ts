@@ -4,72 +4,23 @@ import {
   MinLength,
   IsOptional,
   IsBoolean,
-  IsInt,
-  IsDateString,
-  ValidateNested,
-  Length,
   IsNotEmpty,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { AddressDto, ProfileDto } from './user.dto';
 
-// ================= ROLE DTO =================
+// (You may need to import AddressDto and ProfileDto here if they are in a shared lib,
+// or define them here if you aren't using a shared lib yet)
+
 export class RoleDto {
   @IsString()
   name!: string; // USER, ADMIN, TRAINER
 }
 
-// ================= ADDRESS DTO =================
-export class AddressDto {
-  @IsString()
-  state!: string;
-
-  @IsString()
-  city!: string;
-
-  @IsString()
-  @Length(6, 6)
-  pincode!: string;
-}
-
-// ================= PROFILE DTO =================
-export class ProfileDto {
-  @IsOptional()
-  @IsString()
-  id?: string;
-
-  @IsString()
-  gender!: string;
-
-  @IsDateString()
-  dob!: string;
-
-  @Type(() => Number) // 🔥 auto transform
-  @IsInt()
-  heightCm!: number;
-
-  @Type(() => Number)
-  @IsInt()
-  weightKg!: number;
-
-  @IsOptional() // ✅ FIXED
-  @IsString()
-  profileImageUrl?: string;
-
-  @IsString()
-  address!: string;
-
-  @IsString()
-  bio!: string;
-
-  @IsString()
-  @Length(10, 10)
-  contact_no!: string;
-}
-
-// ================= USER SESSION DTO =================
 export class UserSessionDto {
   @IsString()
-  apAddress!: string;
+  ipAddress!: string; // Fixed typo from 'apAddress'
 
   @IsString()
   device!: string;
@@ -80,22 +31,10 @@ export class UserSessionDto {
   @IsString()
   refreshTokenHash!: string;
 
-  @IsDateString()
+  @IsString() // Changed from IsDateString if you are handling Date objects directly, but IsDateString is fine if receiving JSON
   expiresAt!: string;
 }
 
-// ================= USER FOLLOW DTO =================
-export class UserFollowDto {
-  @Type(() => Number)
-  @IsInt()
-  followerId!: number;
-
-  @Type(() => Number)
-  @IsInt()
-  followingId!: number;
-}
-
-// ================= REGISTER DTO =================
 export class RegisterDTO {
   @IsEmail()
   email!: string;
@@ -138,7 +77,6 @@ export class RegisterDTO {
   profile?: ProfileDto;
 }
 
-// ================= LOGIN DTO =================
 export class SigninDto {
   @IsEmail()
   @IsNotEmpty()
@@ -148,48 +86,4 @@ export class SigninDto {
   @IsNotEmpty()
   @MinLength(6)
   password!: string;
-}
-
-// ================= UPDATE USER DTO =================
-export class UpdateUserDto {
-  @IsOptional()
-  @IsString()
-  @MinLength(3)
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  role?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isEmailVerified?: boolean;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => AddressDto)
-  address?: AddressDto;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => ProfileDto)
-  profile?: ProfileDto;
-}
-
-// ================= CREATE FOLLOW DTO =================
-export class CreateFollowDto {
-  @Type(() => Number)
-  @IsInt()
-  followingId!: number;
-}
-
-// ================= UNFOLLOW DTO =================
-export class UnfollowDto {
-  @Type(() => Number)
-  @IsInt()
-  followingId!: number;
 }

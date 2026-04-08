@@ -15,8 +15,8 @@ import { CircuitBreakerService } from '../common/circuitBreaker';
 import { UserService } from './users.service';
 import { JwtAuthGuard } from 'libs/common/auth/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ProfileDto } from 'libs/common/DTO/auth.dto';
 import { AwsService } from 'libs/common/aws/aws.service';
+import { ProfileDto } from 'libs/common/DTO/user.dto';
 
 @Controller('user')
 export class UsersController {

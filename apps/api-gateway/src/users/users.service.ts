@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ProfileDto } from 'libs/common/DTO/auth.dto';
+import { ProfileDto } from 'libs/common/DTO/user.dto';
 import { lastValueFrom } from 'rxjs';
 @Injectable()
 export class UserService {

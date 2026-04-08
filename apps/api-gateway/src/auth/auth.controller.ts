@@ -13,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
-  ProfileDto,
   RegisterDTO,
   RoleDto,
   SigninDto,
@@ -47,29 +46,28 @@ export class AuthController {
     return breaker.fire();
   }
 
-  // controller
-@Post('signin')
-async signUser(
-  @Body() signInDto: SigninDto,
-  @Res({ passthrough: true }) res: Response,
-) {
-  const breaker = this.cbBreaker.getBreaker(
-    this.key,
-    'signin',
-    async (dto: SigninDto) => this.authService.signUser(dto),
-  );
+  @Post('signin')
+  async signUser(
+    @Body() signInDto: SigninDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const breaker = this.cbBreaker.getBreaker(
+      this.key,
+      'signin',
+      async (dto: SigninDto) => this.authService.signUser(dto),
+    );
 
-  const result = await breaker.fire(signInDto);
+    const result = await breaker.fire(signInDto);
 
-  res.cookie('access_token', result.token, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'lax',
-    maxAge: 1000 * 60 * 60,
-  });
+    res.cookie('access_token', result.token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60,
+    });
 
-  return result;
-}
+    return result;
+  }
   @Post('register')
   @UseInterceptors(FileInterceptor('profileImageUrl'))
   async registerUser(

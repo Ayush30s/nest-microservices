@@ -53,6 +53,8 @@ model Gym {
   
   name String 
   description String?
+  image String?
+  coverImage String?
 
   ownerId     Int
 
@@ -97,7 +99,6 @@ model Membership {
 
   price Int
   durationInDays Int
-
   subscriptions Subscription[]
 
   createdAt DateTime @default(now())

@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/@prisma-clients/gym"
 }
 
 datasource db {
@@ -20,7 +20,7 @@ enum MembershipStatus {
 }
 
 enum SubscriptionStatus {
-  ACTIVE
+  ACT
   EXPIRED
   CANCELLED
   PENDING
@@ -55,6 +55,7 @@ model Gym {
   description String?
   image String?
   coverImage String?
+  slug String? @unique()
 
   ownerId     Int
 
@@ -62,6 +63,7 @@ model Gym {
   isPrivate   Boolean  @default(false)
 
   memberships Membership[]
+  shifts      Shift[]
   classes     GymClass[]
   attendance  Attendance[]
   trainerGyms TrainerGym[]
@@ -71,6 +73,40 @@ model Gym {
 
   @@index([ownerId]) 
   @@map("gyms")
+}
+
+model Shift {
+  id              Int       @id @default(autoincrement())
+
+  name            String
+  description     String?
+
+  startTime       DateTime
+  endTime         DateTime
+
+  maxMembers      Int?
+  currentMembers  Int       @default(0)
+
+  gymId           Int
+  gym             Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  trainerId       Int?
+  trainer         Trainer?  @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+
+  dayOfWeek       String?
+  isRecurring     Boolean   @default(false)
+
+  price           Float?
+  isPremium       Boolean   @default(false)
+
+  bookingRequired Boolean   @default(true)
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([gymId])
+  @@index([trainerId])
 }
 
 // Since your users table is handled by an external User Service,
@@ -271,7 +307,10 @@ model Trainer {
   specialization String
   bio String
   hourlyRate Int
-  
+  experienceYears Int?
+  rating Float?   
+
+  shifts Shift[] 
   trainerGyms TrainerGym[]
   classes GymClass[]
 }

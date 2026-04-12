@@ -1,24 +1,91 @@
-import { Controller, Get, Inject, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Logger,
+  Post,
+  UploadedFile,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError, throwError, timeout } from 'rxjs';
 import { CircuitBreakerService } from '../common/circuitBreaker';
 import { GymService } from './gym.service';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
+import { CreateGymDto, CreateShiftDto, CreateTrainerDto } from 'libs/common/DTO/gym.dto';
+import { AwsService } from 'libs/common/aws/aws.service';
 
 @Controller('gym')
 export class GymController {
-  private cbKey = 'gym-service';
+  private key = 'gym-service';
+  private logger = new Logger(GymController.name);
 
   constructor(
     private readonly cbService: CircuitBreakerService,
     private readonly GymService: GymService,
+    private readonly aws: AwsService,
+    private readonly cbBreaker: CircuitBreakerService,
   ) {}
 
-  @Get()
-  async getUsers() {
-    const breaker = this.cbService.getBreaker(
-      this.cbKey,
-      'create-gyms',
-      async () => this.GymService.createGym(),
+  @Post('create-gym')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'image', maxCount: 1 },
+      { name: 'coverImage', maxCount: 1 },
+    ]),
+  )
+  async createGym(
+    @UploadedFiles()
+    files: {
+      image?: Express.Multer.File[];
+      coverImage?: Express.Multer.File[];
+    },
+    @Body() createGymDto: CreateGymDto,
+  ) {
+    const imageUpload = files?.image?.[0]
+      ? await this.aws.uploadFile(files.image[0])
+      : null;
+
+    const coverUpload = files?.coverImage?.[0]
+      ? await this.aws.uploadFile(files.coverImage[0])
+      : null;
+
+    const breaker = this.cbBreaker.getBreaker(
+      this.key,
+      'create-gym',
+      async () =>
+        this.GymService.createGym({
+          ...createGymDto,
+          image: imageUpload?.url,
+          coverImage: coverUpload?.url,
+        }),
+    );
+
+    return breaker.fire();
+  }
+
+  @Post('create-shift')
+  createShift(@Body() dto: CreateShiftDto) {
+    const breaker = this.cbBreaker.getBreaker(
+      this.key,
+      'create-shift',
+      async () => this.GymService.createShift(dto),
+    );
+
+    return breaker.fire();
+  }
+
+  @Post('create-trainer')
+  createTrainer(@Body() dto: CreateTrainerDto) {
+    const breaker = this.cbBreaker.getBreaker(
+      this.key,
+      'create-trainer',
+      async () => this.GymService.createTrainer(dto),
     );
 
     return breaker.fire();

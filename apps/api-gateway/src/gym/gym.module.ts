@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientProxy, ClientsModule, Transport } from '@nestjs/microservices';
 import { CircuitBreakerService } from '../common/circuitBreaker';
 import { GymController } from './gym.controller';
 import { GymService } from './gym.service';

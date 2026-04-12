@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { RpcToHttpExceptionFilter } from 'libs/RcpHttpExceptionFilter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -8,8 +9,8 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      transform: true,
       forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
@@ -18,6 +19,8 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
+
+  app.useGlobalFilters(new RpcToHttpExceptionFilter());
 
   await app.listen(3000, '0.0.0.0');
 }

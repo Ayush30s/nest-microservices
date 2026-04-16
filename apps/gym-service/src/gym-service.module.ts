@@ -10,7 +10,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: 'apps/gym-service/.env',
+      // envFilePath: 'apps/gym-service/.env',
     }),
     ClientsModule.register([
       {

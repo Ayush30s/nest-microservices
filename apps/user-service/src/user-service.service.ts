@@ -70,7 +70,7 @@ export class UserServiceService {
 
   async getProfile(authId: number) {
     const user = await this.prisma.user.findUnique({
-      where: { authId: authId },
+      where: { authId: Number(authId) },
       include: {
         profile: true,
         address: true,

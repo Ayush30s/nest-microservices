@@ -64,6 +64,15 @@
         "tsConfigPath": "apps/product-service/tsconfig.app.json"
       }
     },
+    "realtime-service": {
+      "type": "application",
+      "root": "apps/realtime-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/realtime-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/realtime-service/tsconfig.app.json"
+      }
+    },
     "user-service": {
       "type": "application",
       "root": "apps/user-service",

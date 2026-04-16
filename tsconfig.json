@@ -22,9 +22,15 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@app/common": ["libs/common/src"],
-      "@gym-prisma": ["apps/generated/gym-client"],
-      "@app/common/*": ["libs/common/src/*"]
+      "@app/common": [
+        "libs/common/src"
+      ],
+      "@app/common/*": [
+        "libs/common/src/*"
+      ],
+      "@gym-prisma": [
+        "apps/generated/gym-client"
+      ]
     }
   }
 }

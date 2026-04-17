@@ -28,7 +28,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
           transport: Transport.TCP,
           options: {
             host: configService.get('API_GATEWAY_HOST', 'localhost'),
-            port: configService.get('API_GATEWAY_PORT', 3005), // Different port for microservice communication
+            port: configService.get('API_GATEWAY_PORT', 3000), // Different port for microservice communication
           },
         }),
         inject: [ConfigService],

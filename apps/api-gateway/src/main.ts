@@ -9,7 +9,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
-  // Global Validation Pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -18,14 +17,12 @@ async function bootstrap() {
     }),
   );
 
-  // CORS Configuration
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-  // Global Exception Filter
   app.useGlobalFilters(new RpcToHttpExceptionFilter());
 
   // WebSocket Redis Adapter for Horizontal Scaling

@@ -23,17 +23,21 @@ import {
   LeaveRoomDto,
 } from 'libs/common/DTO/message.dto';
 
-// Interface for connected client data
+// ========================
+// Interfaces & Types
+// ========================
 interface ClientData {
   userId: string;
   rooms: Set<string>;
 }
 
-// Interface for message result
 interface MessageResult {
   messageId: string;
 }
 
+// ========================
+// Gateway Configuration
+// ========================
 @WebSocketGateway({
   cors: {
     origin: process.env.ALLOWED_ORIGINS?.split(',') || [
@@ -61,60 +65,24 @@ export class RealtimeGateway
     @Inject('REALTIME_SERVICE') private readonly realtimeClient: ClientProxy,
   ) {}
 
+  // ========================
+  // Lifecycle Hooks
+  // ========================
   afterInit(server: Server) {
     this.logger.log('Realtime WebSocket Gateway initialized');
-
-    this.realtimeClient.send(
-      { cmd: MESSAGE_PATTERNS.BROADCAST_MESSAGE },
-      (data: any) => {
-        this.handleBroadcastMessage(data);
-      },
-    );
-
-    this.realtimeClient.send(
-      { cmd: MESSAGE_PATTERNS.BROADCAST_USER_JOINED },
-      (data: any) => {
-        this.handleUserJoined(data);
-      },
-    );
-
-    this.realtimeClient.send(
-      { cmd: MESSAGE_PATTERNS.BROADCAST_USER_LEFT },
-      (data: any) => {
-        this.handleUserLeft(data);
-      },
-    );
-
-    this.realtimeClient.send(
-      { cmd: MESSAGE_PATTERNS.BROADCAST_TYPING },
-      (data: any) => {
-        this.handleUserTyping(data);
-      },
-    );
+    this.subscribeToMicroserviceBroadcasts();
   }
 
   @UseGuards(WsJwtGuard)
   async handleConnection(client: Socket) {
     try {
-      const userId = client.data.user.sub;
+      const userId = this.extractUserIdFromClient(client);
 
-      this.connectedClients.set(client.id, {
-        userId,
-        rooms: new Set<string>(),
-      });
+      this.storeClient(client.id, userId);
+      await client.join(this.getUserRoom(userId));
 
-      await client.join(`user:${userId}`);
-
-      this.logger.log(
-        `Client connected: ${client.id} (User: ${userId}, Total: ${this.connectedClients.size})`,
-      );
-
-      client.emit('connected', {
-        status: 'success',
-        socketId: client.id,
-        userId,
-        timestamp: new Date().toISOString(),
-      });
+      this.logger.log(`Client connected: ${client.id} (User: ${userId})`);
+      this.sendConnectionSuccess(client, userId);
     } catch (error) {
       this.logger.error(`Connection error for ${client.id}:`, error);
       client.disconnect();
@@ -125,13 +93,7 @@ export class RealtimeGateway
     const clientData = this.connectedClients.get(client.id);
 
     if (clientData) {
-      // Notify realtime-service about disconnection
-      this.realtimeClient.emit(MESSAGE_PATTERNS.PROCESS_LEAVE_ROOM, {
-        userId: clientData.userId,
-        rooms: Array.from(clientData.rooms),
-        reason: 'disconnect',
-      });
-
+      this.notifyMicroserviceOfLeave(clientData);
       this.connectedClients.delete(client.id);
       this.logger.log(
         `Client disconnected: ${client.id} (Remaining: ${this.connectedClients.size})`,
@@ -139,6 +101,9 @@ export class RealtimeGateway
     }
   }
 
+  // ========================
+  // WebSocket Event Handlers
+  // ========================
   @UseGuards(WsJwtGuard)
   @SubscribeMessage(REALTIME_EVENTS.SEND_MESSAGE)
   async handleMessage(
@@ -146,18 +111,14 @@ export class RealtimeGateway
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const userId = client.data.user.sub;
-
-      // Forward to realtime-service for processing
-      const result = await firstValueFrom(
-        this.realtimeClient.send<MessageResult>(
-          MESSAGE_PATTERNS.PROCESS_MESSAGE,
-          {
-            ...data,
-            senderId: userId,
-            socketId: client.id,
-          },
-        ),
+      const userId = this.extractUserIdFromClient(client);
+      const result = await this.sendToMicroservice<MessageResult>(
+        MESSAGE_PATTERNS.PROCESS_MESSAGE,
+        {
+          ...data,
+          senderId: userId,
+          socketId: client.id,
+        },
       );
 
       return {
@@ -166,7 +127,7 @@ export class RealtimeGateway
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error(`Error processing message:`, error);
+      this.logger.error('Error processing message:', error);
       throw new WsException('Failed to process message');
     }
   }
@@ -178,25 +139,17 @@ export class RealtimeGateway
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const userId = client.data.user.sub;
+      const userId = this.extractUserIdFromClient(client);
+      const roomName = this.getRoomName(data.roomId);
 
-      // Join socket.io room
-      await client.join(`room:${data.roomId}`);
+      await client.join(roomName);
+      this.trackRoomMembership(client.id, data.roomId, 'add');
 
-      // Track room membership
-      const clientData = this.connectedClients.get(client.id);
-      if (clientData) {
-        clientData.rooms.add(data.roomId);
-      }
-
-      // Notify realtime-service
-      await firstValueFrom(
-        this.realtimeClient.send(MESSAGE_PATTERNS.PROCESS_JOIN_ROOM, {
-          userId,
-          roomId: data.roomId,
-          socketId: client.id,
-        }),
-      );
+      await this.sendToMicroservice(MESSAGE_PATTERNS.PROCESS_JOIN_ROOM, {
+        userId,
+        roomId: data.roomId,
+        socketId: client.id,
+      });
 
       return {
         status: 'success',
@@ -204,7 +157,7 @@ export class RealtimeGateway
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error(`Error joining room:`, error);
+      this.logger.error('Error joining room:', error);
       throw new WsException('Failed to join room');
     }
   }
@@ -216,22 +169,17 @@ export class RealtimeGateway
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const userId = client.data.user.sub;
+      const userId = this.extractUserIdFromClient(client);
+      const roomName = this.getRoomName(data.roomId);
 
-      await client.leave(`room:${data.roomId}`);
+      await client.leave(roomName);
+      this.trackRoomMembership(client.id, data.roomId, 'delete');
 
-      const clientData = this.connectedClients.get(client.id);
-      if (clientData) {
-        clientData.rooms.delete(data.roomId);
-      }
-
-      await firstValueFrom(
-        this.realtimeClient.send(MESSAGE_PATTERNS.PROCESS_LEAVE_ROOM, {
-          userId,
-          roomId: data.roomId,
-          socketId: client.id,
-        }),
-      );
+      await this.sendToMicroservice(MESSAGE_PATTERNS.PROCESS_LEAVE_ROOM, {
+        userId,
+        roomId: data.roomId,
+        socketId: client.id,
+      });
 
       return {
         status: 'success',
@@ -239,20 +187,40 @@ export class RealtimeGateway
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error(`Error leaving room:`, error);
+      this.logger.error('Error leaving room:', error);
       throw new WsException('Failed to leave room');
     }
   }
 
-  // Handlers for events from realtime-service
+  // ========================
+  // Microservice Broadcast Handlers
+  // ========================
+  private subscribeToMicroserviceBroadcasts() {
+    this.realtimeClient
+      .send({ cmd: MESSAGE_PATTERNS.BROADCAST_MESSAGE }, {})
+      .subscribe((data) => this.handleBroadcastMessage(data));
+
+    this.realtimeClient
+      .send({ cmd: MESSAGE_PATTERNS.BROADCAST_USER_JOINED }, {})
+      .subscribe((data) => this.handleUserJoined(data));
+
+    this.realtimeClient
+      .send({ cmd: MESSAGE_PATTERNS.BROADCAST_USER_LEFT }, {})
+      .subscribe((data) => this.handleUserLeft(data));
+
+    this.realtimeClient
+      .send({ cmd: MESSAGE_PATTERNS.BROADCAST_TYPING }, {})
+      .subscribe((data) => this.handleUserTyping(data));
+  }
+
   private handleBroadcastMessage(data: any) {
     if (data.roomId) {
       this.server
-        .to(`room:${data.roomId}`)
+        .to(this.getRoomName(data.roomId))
         .emit(REALTIME_EVENTS.RECEIVE_MESSAGE, data);
     } else if (data.userId) {
       this.server
-        .to(`user:${data.userId}`)
+        .to(this.getUserRoom(data.userId))
         .emit(REALTIME_EVENTS.RECEIVE_MESSAGE, data);
     } else {
       this.server.emit(REALTIME_EVENTS.RECEIVE_MESSAGE, data);
@@ -261,27 +229,89 @@ export class RealtimeGateway
 
   private handleUserJoined(data: any) {
     this.server
-      .to(`room:${data.roomId}`)
+      .to(this.getRoomName(data.roomId))
       .emit(REALTIME_EVENTS.USER_JOINED, data);
   }
 
   private handleUserLeft(data: any) {
-    this.server.to(`room:${data.roomId}`).emit(REALTIME_EVENTS.USER_LEFT, data);
+    this.server
+      .to(this.getRoomName(data.roomId))
+      .emit(REALTIME_EVENTS.USER_LEFT, data);
   }
 
   private handleUserTyping(data: any) {
     this.server
-      .to(`room:${data.roomId}`)
+      .to(this.getRoomName(data.roomId))
       .emit(REALTIME_EVENTS.USER_TYPING, data);
   }
 
-  // Utility method for external services
+  // ========================
+  // Public Utility Methods
+  // ========================
   emitToUser(userId: string, event: string, data: any) {
-    this.server.to(`user:${userId}`).emit(event, data);
+    this.server.to(this.getUserRoom(userId)).emit(event, data);
   }
 
-  // Get connected clients count (for monitoring)
   getConnectedClientsCount(): number {
     return this.connectedClients.size;
+  }
+
+  // ========================
+  // Private Helpers
+  // ========================
+  private extractUserIdFromClient(client: Socket): string {
+    return client.data.user.sub;
+  }
+
+  private storeClient(socketId: string, userId: string) {
+    this.connectedClients.set(socketId, {
+      userId,
+      rooms: new Set<string>(),
+    });
+  }
+
+  private trackRoomMembership(
+    socketId: string,
+    roomId: string,
+    action: 'add' | 'delete',
+  ) {
+    const clientData = this.connectedClients.get(socketId);
+    if (!clientData) return;
+
+    if (action === 'add') {
+      clientData.rooms.add(roomId);
+    } else {
+      clientData.rooms.delete(roomId);
+    }
+  }
+
+  private notifyMicroserviceOfLeave(clientData: ClientData) {
+    this.realtimeClient.emit(MESSAGE_PATTERNS.PROCESS_LEAVE_ROOM, {
+      userId: clientData.userId,
+      rooms: Array.from(clientData.rooms),
+      reason: 'disconnect',
+    });
+  }
+
+  private async sendToMicroservice<T>(pattern: string, data: any): Promise<T> {
+    return firstValueFrom(this.realtimeClient.send<T>(pattern, data));
+  }
+
+  private sendConnectionSuccess(client: Socket, userId: string) {
+    client.emit('connected', {
+      status: 'success',
+      socketId: client.id,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Room naming conventions
+  private getUserRoom(userId: string): string {
+    return `user:${userId}`;
+  }
+
+  private getRoomName(roomId: string): string {
+    return `room:${roomId}`;
   }
 }

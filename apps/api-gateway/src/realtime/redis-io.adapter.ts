@@ -70,3 +70,56 @@ export class RedisIoAdapter extends IoAdapter {
     return server;
   }
 }
+
+// ┌──────────────────────────────────────────────┐
+// │ Layer 1: Browser / Mobile Client             │
+// │ socket.emit("SEND_MESSAGE", payload)         │
+// └──────────────────────────────────────────────┘
+//                      |
+//                      v
+// ┌──────────────────────────────────────────────┐
+// │ Layer 2: Nest WebSocket Gateway              │
+// │ @SubscribeMessage(SEND_MESSAGE)              │
+// │ handleMessage(...)                           │
+// └──────────────────────────────────────────────┘
+//                      |
+//                      v
+// ┌──────────────────────────────────────────────┐
+// │ Layer 3: Nest Microservice Call              │
+// │ realtimeClient.send(PROCESS_MESSAGE, data)   │
+// └──────────────────────────────────────────────┘
+//                      |
+//                      v
+// ┌──────────────────────────────────────────────┐
+// │ Layer 4: Realtime Microservice Logic         │
+// │ validate / save / decide recipients          │
+// │ emits BROADCAST_MESSAGE                      │
+// └──────────────────────────────────────────────┘
+//                      |
+//                      v
+// ┌──────────────────────────────────────────────┐
+// │ Layer 5: Gateway Broadcast Handler           │
+// │ handleBroadcastMessage(data)                 │
+// │ server.to(room).emit(RECEIVE_MESSAGE, data)  │
+// └──────────────────────────────────────────────┘
+//                      |
+//                      v
+// ┌──────────────────────────────────────────────┐
+// │ Layer 6: Socket.IO Redis Adapter             │
+// │ adapter intercepts emit                      │
+// │ pubClient publishes via Redis                │
+// │ subClient on other nodes receives            │
+// └──────────────────────────────────────────────┘
+//                      |
+//                      v
+// ┌──────────────────────────────────────────────┐
+// │ Layer 7: Other Gateway Instances             │
+// │ recreate same emit locally                   │
+// │ deliver to local sockets in matching room    │
+// └──────────────────────────────────────────────┘
+//                      |
+//                      v
+// ┌──────────────────────────────────────────────┐
+// │ Layer 8: Recipient Clients                   │
+// │ receive RECEIVE_MESSAGE / USER_JOINED etc.   │
+// └──────────────────────────────────────────────┘

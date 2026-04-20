@@ -96,25 +96,22 @@ jobs:
             set -e
             cd ~/app
 
-            # Ensure pnpm is available
             if ! command -v pnpm >/dev/null 2>&1; then
               npm install -g pnpm
             fi
 
-            # Ensure pm2 is available
             if ! command -v pm2 >/dev/null 2>&1; then
               npm install -g pm2
             fi
 
-            # Install only production dependencies (no building needed)
-            pnpm install --prod --no-frozen-lockfile
+            # Install ALL deps (including devDeps so prisma CLI is available)
+            pnpm install --no-frozen-lockfile
 
-            # Generate Prisma clients against the copied schemas
+            # Now prisma CLI exists, generate clients
             pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
 
-            # Restart or start all services
             pm2 delete all || true
             pm2 start ecosystem.config.js
             pm2 save

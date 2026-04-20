@@ -54,25 +54,21 @@ jobs:
 
       - name: Copy dist to EC2
         run: |
-          # Ensure remote app directory exists
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p ~/app"
 
-          # Copy built dist folder (replaces old dist entirely)
           rsync -az --delete \
             -e "ssh -i ~/.ssh/deploy_key" \
             dist/ \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/dist/
 
-          # Copy package files and ecosystem config
+          # Removed pnpm-workspace.yaml since it doesn't exist in your repo
           rsync -az \
             -e "ssh -i ~/.ssh/deploy_key" \
             package.json \
             pnpm-lock.yaml \
-            pnpm-workspace.yaml \
             ecosystem.config.js \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/
 
-          # Copy Prisma schemas so migrate commands work on server if needed
           rsync -az \
             -e "ssh -i ~/.ssh/deploy_key" \
             apps/auth-service/prisma/ \

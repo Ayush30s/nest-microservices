@@ -33,7 +33,7 @@ jobs:
           pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
           pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
 
-      - name: Build services
+      - name: Build all services
         run: |
           pnpm exec nest build api-gateway
           pnpm exec nest build auth-service
@@ -42,63 +42,84 @@ jobs:
           pnpm exec nest build user-service
           pnpm exec nest build realtime-service
 
-      - name: Deploy to EC2
+      - name: Add EC2 to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Copy dist to EC2
+        run: |
+          # Ensure remote app directory exists
+          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p ~/app"
+
+          # Copy built dist folder (replaces old dist entirely)
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            dist/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/dist/
+
+          # Copy package files and ecosystem config
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            package.json \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml \
+            ecosystem.config.js \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/
+
+          # Copy Prisma schemas so migrate commands work on server if needed
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            apps/auth-service/prisma/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/auth-service/prisma/
+
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            apps/user-service/prisma/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/user-service/prisma/
+
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            apps/gym-service/prisma/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/gym-service/prisma/
+
+      - name: Install production deps & restart on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          command_timeout: 30m
+          command_timeout: 10m
           script: |
             set -e
-
-            if [ ! -d ~/app ]; then
-              git clone https://github.com/Ayush30s/nest-microservices.git ~/app
-            fi
-
             cd ~/app
-            git fetch origin
-            git reset --hard origin/master
 
+            # Ensure pnpm is available
             if ! command -v pnpm >/dev/null 2>&1; then
               npm install -g pnpm
             fi
 
+            # Ensure pm2 is available
             if ! command -v pm2 >/dev/null 2>&1; then
               npm install -g pm2
             fi
 
-            pnpm install --no-frozen-lockfile
+            # Install only production dependencies (no building needed)
+            pnpm install --prod --no-frozen-lockfile
 
+            # Generate Prisma clients against the copied schemas
             pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
 
-            echo "Building api-gateway"
-            date
-            pnpm exec nest build api-gateway
-
-            echo "Building auth-service"
-            date
-            pnpm exec nest build auth-service
-
-            echo "Building gym-service"
-            date
-            pnpm exec nest build gym-service
-
-            echo "Building product-service"
-            date
-            pnpm exec nest build product-service
-
-            echo "Building user-service"
-            date
-            pnpm exec nest build user-service
-
-            echo "Building realtime-service"
-            date
-            pnpm exec nest build realtime-service
-
+            # Restart or start all services
             pm2 delete all || true
             pm2 start ecosystem.config.js
             pm2 save
+            pm2 list

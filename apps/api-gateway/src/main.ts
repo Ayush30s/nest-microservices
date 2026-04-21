@@ -18,6 +18,8 @@ async function bootstrap() {
     }),
   );
 
+  app.setGlobalPrefix('api');
+
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -34,7 +36,9 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('swagger', app, document);
+  SwaggerModule.setup('swagger', app, document, {
+    useGlobalPrefix: true,
+  });
 
   if (process.env.REDIS_URL) {
     try {
@@ -51,9 +55,6 @@ async function bootstrap() {
   } else {
     logger.warn('⚠️ REDIS_URL not set. WebSocket will not scale horizontally.');
   }
-
-  // Global prefix for HTTP routes (keeps WebSocket paths clean)
-  app.setGlobalPrefix('api');
 
   const port = process.env.PORT || 3000;
   const host = '0.0.0.0';

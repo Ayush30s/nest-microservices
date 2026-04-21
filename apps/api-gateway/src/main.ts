@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { RpcToHttpExceptionFilter } from 'libs/RcpHttpExceptionFilter';
 import { RedisIoAdapter } from './realtime/redis-io.adapter';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,7 +26,16 @@ async function bootstrap() {
 
   app.useGlobalFilters(new RpcToHttpExceptionFilter());
 
-  // WebSocket Redis Adapter for Horizontal Scaling
+  const config = new DocumentBuilder()
+    .setTitle('My Microservice API')
+    .setDescription('API documentation')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('swagger', app, document);
+
   if (process.env.REDIS_URL) {
     try {
       const redisIoAdapter = new RedisIoAdapter(app);

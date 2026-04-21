@@ -40,7 +40,7 @@ export class AuthServiceModule {
       -------------------------
       Auth - Service env loaded : 
       -----------------------------------------------------------
-      ${config.get<string>('DATABASE_URL')}
+      ${config.get<string>('AUTH_DATABASE_URL')}
       -----------------------------------------------------------
       `);
   }

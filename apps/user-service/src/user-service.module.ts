@@ -25,7 +25,7 @@ export class UserServiceModule {
       -------------------------
       User - Service env loaded : 
       -----------------------------------------------------------
-      ${config.get<string>('DATABASE_URL')}
+      ${config.get<string>('USER_DATABASE_URL')}
       -----------------------------------------------------------
       `);
   }

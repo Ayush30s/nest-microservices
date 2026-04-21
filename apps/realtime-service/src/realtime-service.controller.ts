@@ -1,29 +1,32 @@
-import { Controller, Get } from '@nestjs/common';
+// apps/realtime-service/src/realtime-service.controller.ts
+import { Controller } from '@nestjs/common';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { RealtimeServiceService } from './realtime-service.service';
-import { EventPattern, MessagePattern } from '@nestjs/microservices';
 import { MESSAGE_PATTERNS } from 'libs/common/contants/event';
 
 @Controller()
 export class RealtimeServiceController {
   constructor(private readonly realtimeService: RealtimeServiceService) {}
 
-  @MessagePattern({ cmd: MESSAGE_PATTERNS.PROCESS_MESSAGE })
-  async processMessage(data: any) {
+  // gateway uses .send(pattern, data) — expects response → @MessagePattern
+  @MessagePattern(MESSAGE_PATTERNS.PROCESS_MESSAGE)
+  async processMessage(@Payload() data: any) {
     return this.realtimeService.processMessage(data);
   }
 
-  @MessagePattern({ cmd: MESSAGE_PATTERNS.PROCESS_JOIN_ROOM })
-  async processJoinRoom(data: any) {
+  @MessagePattern(MESSAGE_PATTERNS.PROCESS_JOIN_ROOM)
+  async processJoinRoom(@Payload() data: any) {
     return this.realtimeService.processJoinRoom(data);
   }
 
-  @MessagePattern({ cmd: MESSAGE_PATTERNS.PROCESS_LEAVE_ROOM })
-  async processLeaveRoom(data: any) {
+  // disconnect uses .emit() — fire and forget → @EventPattern
+  @EventPattern(MESSAGE_PATTERNS.PROCESS_LEAVE_ROOM)
+  async processLeaveRoom(@Payload() data: any) {
     return this.realtimeService.processLeaveRoom(data);
   }
 
-  @EventPattern({ cmd: MESSAGE_PATTERNS.PROCESS_TYPING })
-  async processTyping(data: any) {
+  @EventPattern(MESSAGE_PATTERNS.PROCESS_TYPING)
+  async processTyping(@Payload() data: any) {
     return this.realtimeService.processTyping(data);
   }
 }

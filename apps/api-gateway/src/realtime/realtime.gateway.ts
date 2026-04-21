@@ -1,4 +1,4 @@
-// apps/api-gateway/realtime/gateway/realtime.gateway.ts
+// apps/api-gateway/src/realtime/realtime.gateway.ts
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -11,9 +11,10 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Inject, Logger, UseGuards } from '@nestjs/common';
+import { Inject, Logger, OnModuleDestroy, UseGuards } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import { createClient, RedisClientType } from 'redis';
 import { MESSAGE_PATTERNS, REALTIME_EVENTS } from 'libs/common/contants/event';
 import { WsJwtGuard } from 'libs/common/auth/jwt-ws-guard';
 import {
@@ -53,13 +54,20 @@ interface MessageResult {
   maxHttpBufferSize: 1e6,
 })
 export class RealtimeGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements
+    OnGatewayInit,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnModuleDestroy
 {
   @WebSocketServer()
   server!: Server;
 
   private readonly logger = new Logger(RealtimeGateway.name);
   private connectedClients = new Map<string, ClientData>();
+
+  // Dedicated Redis subscriber for microservice → gateway broadcasts
+  private redisSubscriber!: RedisClientType;
 
   constructor(
     @Inject('REALTIME_SERVICE') private readonly realtimeClient: ClientProxy,
@@ -68,19 +76,17 @@ export class RealtimeGateway
   // ========================
   // Lifecycle Hooks
   // ========================
-  afterInit(server: Server) {
+  async afterInit(server: Server) {
     this.logger.log('Realtime WebSocket Gateway initialized');
-    this.subscribeToMicroserviceBroadcasts();
+    await this.connectRedisSubscriber();
   }
 
   @UseGuards(WsJwtGuard)
   async handleConnection(client: Socket) {
     try {
       const userId = this.extractUserIdFromClient(client);
-
       this.storeClient(client.id, userId);
       await client.join(this.getUserRoom(userId));
-
       this.logger.log(`Client connected: ${client.id} (User: ${userId})`);
       this.sendConnectionSuccess(client, userId);
     } catch (error) {
@@ -91,13 +97,89 @@ export class RealtimeGateway
 
   handleDisconnect(client: Socket) {
     const clientData = this.connectedClients.get(client.id);
-
     if (clientData) {
       this.notifyMicroserviceOfLeave(clientData);
       this.connectedClients.delete(client.id);
       this.logger.log(
         `Client disconnected: ${client.id} (Remaining: ${this.connectedClients.size})`,
       );
+    }
+  }
+
+  async onModuleDestroy() {
+    if (this.redisSubscriber) {
+      await this.redisSubscriber.quit();
+      this.logger.log('Redis subscriber disconnected');
+    }
+  }
+
+  // ========================
+  // Redis Pub/Sub — Microservice → Gateway
+  // ========================
+
+  /**
+   * This is the CORRECT way for the microservice to push broadcasts to the gateway.
+   *
+   * Flow:
+   *   realtime-service does: redisPublisher.publish('realtime.broadcast.message', JSON.stringify(data))
+   *   This subscriber receives it and emits to Socket.IO rooms.
+   *
+   * This replaces the broken .send() calls that were in subscribeToMicroserviceBroadcasts().
+   */
+  private async connectRedisSubscriber() {
+    try {
+      this.redisSubscriber = createClient({
+        url: process.env.REDIS_URL,
+        socket: {
+          reconnectStrategy: (retries) => {
+            this.logger.warn(`Redis subscriber reconnect attempt ${retries}`);
+            if (retries > 10) return new Error('Max reconnection attempts');
+            return Math.min(retries * 100, 3000);
+          },
+        },
+      }) as RedisClientType;
+
+      this.redisSubscriber.on('error', (err) =>
+        this.logger.error('Redis subscriber error:', err),
+      );
+
+      await this.redisSubscriber.connect();
+      this.logger.log('Redis subscriber connected for broadcast events');
+
+      // Subscribe to all broadcast channels the microservice publishes to
+      await this.redisSubscriber.subscribe(
+        MESSAGE_PATTERNS.BROADCAST_MESSAGE,
+        (raw) => this.handleBroadcastMessage(this.parseRedisMessage(raw)),
+      );
+
+      await this.redisSubscriber.subscribe(
+        MESSAGE_PATTERNS.BROADCAST_USER_JOINED,
+        (raw) => this.handleUserJoined(this.parseRedisMessage(raw)),
+      );
+
+      await this.redisSubscriber.subscribe(
+        MESSAGE_PATTERNS.BROADCAST_USER_LEFT,
+        (raw) => this.handleUserLeft(this.parseRedisMessage(raw)),
+      );
+
+      await this.redisSubscriber.subscribe(
+        MESSAGE_PATTERNS.BROADCAST_TYPING,
+        (raw) => this.handleUserTyping(this.parseRedisMessage(raw)),
+      );
+
+      this.logger.log('Subscribed to all microservice broadcast channels');
+    } catch (error) {
+      this.logger.error('Failed to connect Redis subscriber:', error);
+      throw error;
+    }
+  }
+
+  private parseRedisMessage(raw: string): any {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      this.logger.warn('Failed to parse Redis message:', raw);
+      return {};
     }
   }
 
@@ -114,13 +196,8 @@ export class RealtimeGateway
       const userId = this.extractUserIdFromClient(client);
       const result = await this.sendToMicroservice<MessageResult>(
         MESSAGE_PATTERNS.PROCESS_MESSAGE,
-        {
-          ...data,
-          senderId: userId,
-          socketId: client.id,
-        },
+        { ...data, senderId: userId, socketId: client.id },
       );
-
       return {
         status: 'success',
         messageId: result.messageId,
@@ -193,26 +270,8 @@ export class RealtimeGateway
   }
 
   // ========================
-  // Microservice Broadcast Handlers
+  // Broadcast Handlers (called from Redis subscriber)
   // ========================
-  private subscribeToMicroserviceBroadcasts() {
-    this.realtimeClient
-      .send({ cmd: MESSAGE_PATTERNS.BROADCAST_MESSAGE }, {})
-      .subscribe((data) => this.handleBroadcastMessage(data));
-
-    this.realtimeClient
-      .send({ cmd: MESSAGE_PATTERNS.BROADCAST_USER_JOINED }, {})
-      .subscribe((data) => this.handleUserJoined(data));
-
-    this.realtimeClient
-      .send({ cmd: MESSAGE_PATTERNS.BROADCAST_USER_LEFT }, {})
-      .subscribe((data) => this.handleUserLeft(data));
-
-    this.realtimeClient
-      .send({ cmd: MESSAGE_PATTERNS.BROADCAST_TYPING }, {})
-      .subscribe((data) => this.handleUserTyping(data));
-  }
-
   private handleBroadcastMessage(data: any) {
     if (data.roomId) {
       this.server
@@ -264,10 +323,7 @@ export class RealtimeGateway
   }
 
   private storeClient(socketId: string, userId: string) {
-    this.connectedClients.set(socketId, {
-      userId,
-      rooms: new Set<string>(),
-    });
+    this.connectedClients.set(socketId, { userId, rooms: new Set<string>() });
   }
 
   private trackRoomMembership(
@@ -277,15 +333,12 @@ export class RealtimeGateway
   ) {
     const clientData = this.connectedClients.get(socketId);
     if (!clientData) return;
-
-    if (action === 'add') {
-      clientData.rooms.add(roomId);
-    } else {
-      clientData.rooms.delete(roomId);
-    }
+    if (action === 'add') clientData.rooms.add(roomId);
+    else clientData.rooms.delete(roomId);
   }
 
   private notifyMicroserviceOfLeave(clientData: ClientData) {
+    // Use emit (fire-and-forget) for disconnect — no response needed
     this.realtimeClient.emit(MESSAGE_PATTERNS.PROCESS_LEAVE_ROOM, {
       userId: clientData.userId,
       rooms: Array.from(clientData.rooms),
@@ -298,7 +351,7 @@ export class RealtimeGateway
   }
 
   private sendConnectionSuccess(client: Socket, userId: string) {
-    client.emit('connected', {
+    client.emit(REALTIME_EVENTS.CONNECTED, {
       status: 'success',
       socketId: client.id,
       userId,
@@ -306,7 +359,6 @@ export class RealtimeGateway
     });
   }
 
-  // Room naming conventions
   private getUserRoom(userId: string): string {
     return `user:${userId}`;
   }

@@ -10,7 +10,6 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // envFilePath: 'apps/gym-service/.env',
     }),
     ClientsModule.register([
       {
@@ -33,7 +32,7 @@ export class GymServiceModule {
   constructor(private readonly config: ConfigService) {
     this.logger.verbose(`
       Gym - Service env loaded : 
-      ${config.get<string>('DATABASE_URL')}
+      ${config.get<string>('GYM_DATABASE_URL')}
     `);
   }
 }

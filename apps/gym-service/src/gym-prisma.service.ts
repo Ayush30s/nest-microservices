@@ -19,11 +19,12 @@ export class GymPrismaService
     super({
       datasources: {
         db: {
-          url: configService.get<string>('DATABASE_URL'),
+          url: configService.get<string>('GYM_DATABASE_URL'),
         },
       },
     });
 
+    this.logger.debug(configService.get<string>('GYM_DATABASE_URL'))
     this.serviceName = this.configService.get<string>('SERVICE_NAME')!;
     this.logger.log('prsima init for : ', this.serviceName);
   }

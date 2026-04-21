@@ -1,4 +1,4 @@
-// apps/api-gateway/realtime/realtime.module.ts
+// apps/api-gateway/src/realtime/realtime.module.ts
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
@@ -25,7 +25,7 @@ import { WsJwtGuard } from 'libs/common/auth/jwt-ws-guard';
           transport: Transport.TCP,
           options: {
             host: configService.get('REALTIME_SERVICE_HOST', 'localhost'),
-            port: configService.get('REALTIME_SERVICE_PORT', 3004),
+            port: configService.get<number>('REALTIME_SERVICE_PORT', 3004),
           },
         }),
         inject: [ConfigService],

@@ -19,7 +19,7 @@ export class UserPrismaService
     super({
       datasources: {
         db: {
-          url: configService.get<string>('DATABASE_URL'),
+          url: configService.get<string>('USER_DATABASE_URL'),
         },
       },
     });

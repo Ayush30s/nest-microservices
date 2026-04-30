@@ -12,7 +12,6 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // envFilePath: 'apps/auth-service/.env',
     }),
     ClientsModule.register([
       {
@@ -23,10 +22,24 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
           port: 3001,
         },
       },
+      {
+        name: 'EMAIL_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: 'localhost',
+          port: 3006,
+        },
+      },
     ]),
-    JwtModule.register({
-      secret: 'my-secret-ket986r4r',
-      signOptions: { expiresIn: '1h' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: '1h',
+        },
+      }),
     }),
     AwsModule,
   ],

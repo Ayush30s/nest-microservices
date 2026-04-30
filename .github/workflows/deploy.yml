@@ -41,6 +41,7 @@ jobs:
           pnpm exec nest build product-service
           pnpm exec nest build user-service
           pnpm exec nest build realtime-service
+          pnpm exec nest build email-service
 
       - name: Add EC2 to known hosts
         run: |

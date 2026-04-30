@@ -1,12 +1,8 @@
-import { Controller, Get, Logger, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Logger, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthServiceService } from './auth-service.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import {
-  RegisterDTO,
-  RoleDto,
-  SigninDto,
-} from 'libs/common/DTO/auth.dto';
-import type { Response } from 'express';
+import { RegisterDTO, RoleDto, SigninDto } from 'libs/common/DTO/auth.dto';
+import type { Request } from 'express';
 import { JwtAuthGuard } from 'libs/common/auth/jwt-auth.guard';
 
 @Controller()
@@ -25,7 +21,7 @@ export class AuthServiceController {
   @MessagePattern({
     cmd: 'sign-in',
   })
-  async signIn(@Payload() signInDto: SigninDto) {
+  async signIn(@Payload() signInDto: any) {
     this.logger.debug(`singin service in api gateway ${signInDto}`);
     return await this.authServiceService.signIn(signInDto);
   }
@@ -35,5 +31,19 @@ export class AuthServiceController {
   })
   async registerUser(@Payload() registerDto: RegisterDTO) {
     return await this.authServiceService.registerUser(registerDto);
+  }
+
+  @MessagePattern({
+    cmd: 'refresh-token',
+  })
+  async refreshToekn(@Payload() token: string) {
+    return await this.authServiceService.refreshAccessToken(token);
+  }
+
+  @MessagePattern({
+    cmd: 'logout',
+  })
+  async logout(@Payload() token: string) {
+    return await this.authServiceService.logout(token);
   }
 }

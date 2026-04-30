@@ -17,26 +17,14 @@ model Role {
   @@map("roles")
 }
 
-model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  isRevoked Boolean  @default(false)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@map("refresh_tokens")
-}
-
 model UserSession {
   id               Int      @id @default(autoincrement())
-  ipAddress        String   // (Fixed typo from 'apAddress')
+  ipAddress        String
   device           String
   platform         String
   refreshTokenHash String
   expiresAt        DateTime
+  revoked          Boolean   @default(false)
   
   userId           Int
   user             User     @relation(fields: [userId], references: [id])
@@ -59,7 +47,6 @@ model User {
   // Relations
   roleId          Int
   role            Role     @relation(fields: [roleId], references: [id])
-  refreshTokens   RefreshToken[]
   userSessions    UserSession[]
 
   createdAt       DateTime @default(now())

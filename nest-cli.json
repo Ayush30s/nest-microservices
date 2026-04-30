@@ -37,6 +37,15 @@
         "tsConfigPath": "libs/common/tsconfig.lib.json"
       }
     },
+    "email-service": {
+      "type": "application",
+      "root": "apps/email-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/email-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/email-service/tsconfig.app.json"
+      }
+    },
     "gym-service": {
       "type": "application",
       "root": "apps/gym-service",

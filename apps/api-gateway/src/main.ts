@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { RpcToHttpExceptionFilter } from 'libs/RcpHttpExceptionFilter';
-import { RedisIoAdapter } from './realtime/redis-io.adapter';
+import { RedisIoAdapter } from '../../realtime-service/src/redis-io.adapter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
@@ -21,11 +21,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   app.enableCors({
-  origin: process.env.ALLOWED_ORIGINS?.split(','),
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-});
+    origin: process.env.ALLOWED_ORIGINS?.split(','),
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  });
 
   app.useGlobalFilters(new RpcToHttpExceptionFilter());
 

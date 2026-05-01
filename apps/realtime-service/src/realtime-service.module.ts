@@ -1,23 +1,17 @@
-// apps/realtime-service/src/realtime-service.module.ts
-import { Controller, Module } from '@nestjs/common';
-import { RealtimeServiceController } from './realtime-service.controller';
+import { Logger, Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { RealtimeServiceService } from './realtime-service.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
+import { WsJwtGuard } from 'libs/common/auth/jwt-ws-guard';
 
+import { RealtimeGateway } from './realtime.gateway';
+import { RateLimiterService } from './rate-limiter.service';
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '1d' },
-      }),
-      inject: [ConfigService],
-    }),
+  imports: [ConfigModule],
+  providers: [
+    RealtimeGateway,
+    RealtimeServiceService,
+    WsJwtGuard,
+    RateLimiterService,
   ],
-  controllers: [RealtimeServiceController],
-  providers: [RealtimeServiceService],
 })
 export class RealtimeServiceModule {}

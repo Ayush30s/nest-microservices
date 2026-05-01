@@ -23,6 +23,7 @@ import {
   JoinRoomDto,
   LeaveRoomDto,
 } from 'libs/common/DTO/message.dto';
+import { RateLimiterService } from './rate-limiter.service';
 
 // ========================
 // Interfaces & Types
@@ -42,7 +43,7 @@ interface MessageResult {
 @WebSocketGateway({
   cors: {
     origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-      'http://localhost:3000',
+      'http://localhost:3004',
     ],
     credentials: true,
   },
@@ -187,6 +188,7 @@ export class RealtimeGateway
   // WebSocket Event Handlers
   // ========================
   @UseGuards(WsJwtGuard)
+  @UseGuards(RateLimiterService)
   @SubscribeMessage(REALTIME_EVENTS.SEND_MESSAGE)
   async handleMessage(
     @MessageBody(new WsValidationPipe()) data: SendMessageDto,

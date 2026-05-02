@@ -1,5 +1,10 @@
 // apps/realtime-service/src/realtime-service.service.ts
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, RedisClientType } from 'redis';
 import { MESSAGE_PATTERNS } from 'libs/common/contants/event';
@@ -9,7 +14,9 @@ export class RealtimeServiceService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RealtimeServiceService.name);
   private redisPublisher!: RedisClientType;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {
+    this.logger.verbose('Realtime Service module initilaized successfully');
+  }
 
   async onModuleInit() {
     this.redisPublisher = createClient({
@@ -30,7 +37,9 @@ export class RealtimeServiceService implements OnModuleInit, OnModuleDestroy {
 
   // Called by controller @MessagePattern — gateway .send() → returns response
   async processMessage(data: any) {
-    this.logger.log(`Processing message from ${data.senderId} in room ${data.roomId}`);
+    this.logger.log(
+      `Processing message from ${data.senderId} in room ${data.roomId}`,
+    );
 
     const messageId = `msg_${Date.now()}`;
 

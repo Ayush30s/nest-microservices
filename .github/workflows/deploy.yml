@@ -43,45 +43,52 @@ jobs:
           pnpm exec nest build realtime-service
           pnpm exec nest build email-service
 
-      - name: Add EC2 to known hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
+      # ✅ FIX: Write SSH key BEFORE ssh-keyscan so the key exists when needed
       - name: Write SSH key
         run: |
+          mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          chmod 700 ~/.ssh
+
+      # ✅ FIX: Use -o StrictHostKeyChecking=no as fallback, with timeout flags
+      - name: Add EC2 to known hosts
+        run: |
+          ssh-keyscan -t rsa,ecdsa,ed25519 -T 30 -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Copy dist to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p ~/app"
+          # ✅ FIX: Test connection first to catch issues early
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=accept-new \
+            -o ConnectTimeout=30 \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p ~/app"
 
           rsync -az --delete \
-            -e "ssh -i ~/.ssh/deploy_key" \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
             dist/ \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/dist/
 
-          # Removed pnpm-workspace.yaml since it doesn't exist in your repo
           rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key" \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
             package.json \
             pnpm-lock.yaml \
             ecosystem.config.js \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/
 
           rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key" \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
             apps/auth-service/prisma/ \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/auth-service/prisma/
 
           rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key" \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
             apps/user-service/prisma/ \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/user-service/prisma/
 
           rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key" \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
             apps/gym-service/prisma/ \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/gym-service/prisma/
 
@@ -105,10 +112,8 @@ jobs:
               npm install -g pm2
             fi
 
-            # Install ALL deps (including devDeps so prisma CLI is available)
             pnpm install --no-frozen-lockfile
 
-            # Now prisma CLI exists, generate clients
             pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma

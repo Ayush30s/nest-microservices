@@ -1,16 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { RealtimeServiceModule } from './realtime-service.module';
-import { Transport } from '@nestjs/microservices';
+import { RedisIoAdapter } from './redis-io.adapter';
 
 async function bootstrap() {
-  const app = await NestFactory.createMicroservice(RealtimeServiceModule, {
-    transport: Transport.TCP,
-    options: {
-      host: 'localhost',
-      port: 3004,
-    },
-  });
-  await app.listen();
-}
+  const app = await NestFactory.create(RealtimeServiceModule);
+  console.log('637cbrteyrucaturasjdgfkhjdhjfgasaer');
 
-bootstrap();
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+
+  app.useWebSocketAdapter(redisIoAdapter);
+
+  await app.listen(3004);
+}

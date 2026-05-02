@@ -59,7 +59,6 @@ jobs:
 
       - name: Copy dist to EC2
         run: |
-          # ✅ FIX: Test connection first to catch issues early
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=accept-new \
             -o ConnectTimeout=30 \
@@ -91,6 +90,12 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
             apps/gym-service/prisma/ \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/gym-service/prisma/
+
+          # ✅ NEW: Copy email-service app files to EC2
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
+            apps/email-service/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/email-service/
 
       - name: Install production deps & restart on EC2
         uses: appleboy/ssh-action@v1.0.3

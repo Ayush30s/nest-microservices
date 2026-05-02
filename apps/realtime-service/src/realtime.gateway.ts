@@ -70,13 +70,6 @@ export class RealtimeGateway
   // Dedicated Redis subscriber for microservice → gateway broadcasts
   private redisSubscriber!: RedisClientType;
 
-  constructor(
-    @Inject('REALTIME_SERVICE') private readonly realtimeClient: ClientProxy,
-  ) {}
-
-  // ========================
-  // Lifecycle Hooks
-  // ========================
   async afterInit(server: Server) {
     this.logger.log('Realtime WebSocket Gateway initialized');
     await this.connectRedisSubscriber();
@@ -341,15 +334,15 @@ export class RealtimeGateway
 
   private notifyMicroserviceOfLeave(clientData: ClientData) {
     // Use emit (fire-and-forget) for disconnect — no response needed
-    this.realtimeClient.emit(MESSAGE_PATTERNS.PROCESS_LEAVE_ROOM, {
-      userId: clientData.userId,
-      rooms: Array.from(clientData.rooms),
-      reason: 'disconnect',
-    });
+    // this.realtimeClient.emit(MESSAGE_PATTERNS.PROCESS_LEAVE_ROOM, {
+    //   userId: clientData.userId,
+    //   rooms: Array.from(clientData.rooms),
+    //   reason: 'disconnect',
+    // });
   }
 
-  private async sendToMicroservice<T>(pattern: string, data: any): Promise<T> {
-    return firstValueFrom(this.realtimeClient.send<T>(pattern, data));
+  private  sendToMicroservice<T>(pattern: string, data: any): any {
+    // return firstValueFrom(this.realtimeClient.send<T>(pattern, data));
   }
 
   private sendConnectionSuccess(client: Socket, userId: string) {

@@ -3,10 +3,11 @@ import { ConfigModule } from '@nestjs/config';
 import { RealtimeServiceService } from './realtime-service.service';
 import { WsJwtGuard } from 'libs/common/auth/jwt-ws-guard';
 
-import { RealtimeGateway } from './realtime.gateway';
 import { RateLimiterService } from './rate-limiter.service';
+import { RealtimeGateway } from './realtime.gateway';
+import { JwtModule } from '@nestjs/jwt';
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, JwtModule],
   providers: [
     RealtimeGateway,
     RealtimeServiceService,

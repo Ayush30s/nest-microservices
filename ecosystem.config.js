@@ -95,7 +95,7 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       env: {
         NODE_ENV: 'production',
-        SMTP_HOST: smtp.gmail.com,
+        SMTP_HOST: process.env.SMTP_HOST,
         SMTP_PORT: process.env.SMTP_PORT,
         SMTP_SECURE: process.env.SMTP_SECURE,
         SMTP_USER: process.env.SMTP_USER,

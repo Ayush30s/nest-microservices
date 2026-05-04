@@ -18,8 +18,6 @@ async function bootstrap() {
     }),
   );
 
-  app.setGlobalPrefix('api');
-
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(','),
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

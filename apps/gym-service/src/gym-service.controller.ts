@@ -25,4 +25,9 @@ export class GymServiceController {
   addTrainer(@Payload() payload: number) {
     return this.gymServiceService.addTrainer(payload);
   }
+
+  @MessagePattern({ cmd: 'remove-trainer' })
+  removeTrainer(@Payload() payload: number) {
+    return this.gymServiceService.removeTrainer(payload);
+  }
 }

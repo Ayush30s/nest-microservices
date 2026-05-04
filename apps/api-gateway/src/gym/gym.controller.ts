@@ -87,11 +87,22 @@ export class GymController {
   }
 
   @Post('add-trainer')
-  addTrainer(@Param('id') id: number, @Req() req: Request) {
+  addTrainer(@Param('id') id: number, @Req() req: any) {
     const breaker = this.cbBreaker.getBreaker(
       this.key,
       'add-trainer',
       async () => this.GymService.addTrainer(id, req.user.id),
+    );
+
+    return breaker.fire();
+  }
+
+  @Post('remove-trainer')
+  removeTrainer(@Param('id') id: number, @Req() req: any) {
+    const breaker = this.cbBreaker.getBreaker(
+      this.key,
+      'remove-trainer',
+      async () => this.GymService.removeTrainer(id, req.user.id),
     );
 
     return breaker.fire();

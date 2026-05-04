@@ -30,4 +30,13 @@ export class GymService {
       ),
     );
   }
+
+  async removeTrainer(id: number, gymId: number) {
+    return lastValueFrom(
+      this.gymClient.send(
+        { cmd: 'remove-trainer' },
+        { trainerId: id, gymId: gymId },
+      ),
+    );
+  }
 }

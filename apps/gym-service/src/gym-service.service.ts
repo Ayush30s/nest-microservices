@@ -161,4 +161,51 @@ export class GymServiceService {
       throw new RpcException(error.message || 'Failed to add trainer');
     }
   }
+
+  async removeTrainer(payload: any) {
+    try {
+      // ✅ Check if trainer exists
+      const trainer = await this.prisma.trainer.findUnique({
+        where: { trainerId: payload.trainerId },
+      });
+
+      if (!trainer) {
+        throw new RpcException('Trainer not found');
+      }
+
+      // ✅ Check if gym exists (important)
+      const gym = await this.prisma.gym.findUnique({
+        where: { id: payload.gymId },
+      });
+
+      if (!gym) {
+        throw new RpcException('Gym not found');
+      }
+
+      // ✅ Check if already joined
+      const exists = await this.prisma.trainerGym.findUnique({
+        where: {
+          trainerPk_gymId: {
+            trainerPk: payload.trainerId,
+            gymId: payload.gymId,
+          },
+        },
+      });
+
+      if (exists) {
+        await this.prisma.trainerGym.delete({
+          where: {
+            trainerPk_gymId: {
+              trainerPk: payload.trainerId,
+              gymId: payload.gymId,
+            },
+          },
+        });
+      } else {
+        throw new RpcException('Trainer already Left');
+      }
+    } catch (error: any) {
+      throw new RpcException(error.message || 'Failed to remove trainer');
+    }
+  }
 }

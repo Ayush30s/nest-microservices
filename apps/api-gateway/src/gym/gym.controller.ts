@@ -4,7 +4,9 @@ import {
   Get,
   Inject,
   Logger,
+  Param,
   Post,
+  Req,
   UploadedFile,
   UploadedFiles,
   UseInterceptors,
@@ -17,7 +19,11 @@ import {
   FileFieldsInterceptor,
   FileInterceptor,
 } from '@nestjs/platform-express';
-import { CreateGymDto, CreateShiftDto, CreateTrainerDto } from 'libs/common/DTO/gym.dto';
+import {
+  CreateGymDto,
+  CreateShiftDto,
+  CreateTrainerDto,
+} from 'libs/common/DTO/gym.dto';
 import { AwsService } from 'libs/common/aws/aws.service';
 
 @Controller('gym')
@@ -80,12 +86,12 @@ export class GymController {
     return breaker.fire();
   }
 
-  @Post('create-trainer')
-  createTrainer(@Body() dto: CreateTrainerDto) {
+  @Post('add-trainer')
+  addTrainer(@Param('id') id: number, @Req() req: Request) {
     const breaker = this.cbBreaker.getBreaker(
       this.key,
-      'create-trainer',
-      async () => this.GymService.createTrainer(dto),
+      'add-trainer',
+      async () => this.GymService.addTrainer(id, req.user.id),
     );
 
     return breaker.fire();

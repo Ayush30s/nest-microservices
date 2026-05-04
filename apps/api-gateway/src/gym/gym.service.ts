@@ -22,7 +22,12 @@ export class GymService {
     );
   }
 
-  async createTrainer(dto: CreateTrainerDto) {
-    return lastValueFrom(this.gymClient.send({ cmd: 'create-trainer' }, dto));
+  async addTrainer(id: number, gymId: number) {
+    return lastValueFrom(
+      this.gymClient.send(
+        { cmd: 'add-trainer' },
+        { trainerId: id, gymId: gymId },
+      ),
+    );
   }
 }

@@ -21,8 +21,8 @@ export class GymServiceController {
     return this.gymServiceService.createShift(createShiftDto);
   }
 
-  @MessagePattern({ cmd: 'create-trainer' })
-  createTrainer(@Payload() dto: CreateTrainerDto) {
-    return this.gymServiceService.createTrainer(dto);
+  @MessagePattern({ cmd: 'add-trainer' })
+  addTrainer(@Payload() payload: number) {
+    return this.gymServiceService.addTrainer(payload);
   }
 }

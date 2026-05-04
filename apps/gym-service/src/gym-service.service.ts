@@ -114,31 +114,51 @@ export class GymServiceService {
     }
   }
 
-  async createTrainer(dto: CreateTrainerDto) {
+  async addTrainer(payload: any) {
     try {
-      const existing = await this.prisma.trainer.findUnique({
-        where: { trainerId: dto.trainerId },
+      // ✅ Check if trainer exists
+      const trainer = await this.prisma.trainer.findUnique({
+        where: { trainerId: payload.trainerId },
       });
 
-      if (existing) {
-        throw new RpcException('Trainer already exists');
+      if (!trainer) {
+        throw new RpcException('Trainer not found');
       }
 
-      const user = this.userClient.send({ cmd: 'get-user' }, dto.trainerId);
-      if (!user) throw new RpcException('User not found');
+      // ✅ Check if gym exists (important)
+      const gym = await this.prisma.gym.findUnique({
+        where: { id: payload.gymId },
+      });
 
-      const trainer = await this.prisma.trainer.create({
-        data: {
-          trainerId: dto.trainerId,
-          specialization: dto.specialization,
-          bio: dto.bio,
-          hourlyRate: dto.hourlyRate,
+      if (!gym) {
+        throw new RpcException('Gym not found');
+      }
+
+      // ✅ Check if already joined
+      const exists = await this.prisma.trainerGym.findUnique({
+        where: {
+          trainerPk_gymId: {
+            trainerPk: payload.trainerId,
+            gymId: payload.gymId,
+          },
         },
       });
 
-      return trainer;
+      if (exists) {
+        throw new RpcException('Trainer already joined');
+      }
+
+      // ✅ Create relation (THIS is the correct step)
+      const trainerGym = await this.prisma.trainerGym.create({
+        data: {
+          trainerPk: payload.trainerId,
+          gymId: payload.gymId,
+        },
+      });
+
+      return trainerGym;
     } catch (error: any) {
-      throw new RpcException(error.message || 'Failed to create trainer');
+      throw new RpcException(error.message || 'Failed to add trainer');
     }
   }
 }

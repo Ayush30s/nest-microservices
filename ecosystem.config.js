@@ -103,5 +103,16 @@ module.exports = {
         SMTP_FROM: process.env.SMTP_FROM,
       },
     },
+    {
+      name: 'ai-service',
+      script: 'dist/apps/ai-service/main.js',
+      error_file: 'logs/ai-service-error.log',
+      out_file: 'logs/ai-service-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      env: {
+        NODE_ENV: 'production',
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+      },
+    },
   ],
 };

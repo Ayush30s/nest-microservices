@@ -32,6 +32,7 @@ jobs:
           pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
           pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
           pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
+          pnpm exec prisma generate --schema apps/ai-service/prisma/schema.prisma
 
       - name: Build all services
         run: |
@@ -42,6 +43,7 @@ jobs:
           pnpm exec nest build user-service
           pnpm exec nest build realtime-service
           pnpm exec nest build email-service
+          pnpm exec nest build ai-service
 
       # ✅ FIX: Write SSH key BEFORE ssh-keyscan so the key exists when needed
       - name: Write SSH key
@@ -97,6 +99,11 @@ jobs:
             apps/email-service/ \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/email-service/
 
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
+            apps/ai-service/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/ai-service/
+
       - name: Install production deps & restart on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -122,6 +129,7 @@ jobs:
             pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
+            pnpm exec prisma generate --schema apps/ai-service/prisma/schema.prisma
 
             pm2 delete all || true
             pm2 start ecosystem.config.js

@@ -11,6 +11,6 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("GYM_DATABASE_URL"),
+    url: env("AI_DATABASE_URL"),
   },
 });

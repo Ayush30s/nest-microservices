@@ -5,12 +5,14 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { UsersModule } from './users/users.module';
 import { GymModule } from './gym/gym.module';
 import { AuthModule } from './auth/auth.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
     AuthModule,
     UsersModule,
     GymModule,
+    AiModule,
     ThrottlerModule.forRoot({
       throttlers: [
         {

@@ -10,9 +10,9 @@ import {
 } from 'libs/common/workflow.types';
 
 @Injectable()
-export class AiConfigService implements OnModuleInit {
+export class AiPostWorkoutService implements OnModuleInit {
   private readonly llm: ChatOpenAI;
-  private readonly logger = new Logger(AiConfigService.name);
+  private readonly logger = new Logger(AiPostWorkoutService.name);
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
@@ -34,10 +34,10 @@ export class AiConfigService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.callAI();
+    // await this.callPostWorkoutAi();
   }
 
-  async callAI() {
+  async callPostWorkoutAi() {
     const stream = await this.llm.invoke([
       {
         role: 'assistant',

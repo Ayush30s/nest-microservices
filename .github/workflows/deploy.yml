@@ -45,7 +45,6 @@ jobs:
           pnpm exec nest build email-service
           pnpm exec nest build ai-service
 
-      # ✅ FIX: Write SSH key BEFORE ssh-keyscan so the key exists when needed
       - name: Write SSH key
         run: |
           mkdir -p ~/.ssh
@@ -53,7 +52,6 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           chmod 700 ~/.ssh
 
-      # ✅ FIX: Use -o StrictHostKeyChecking=no as fallback, with timeout flags
       - name: Add EC2 to known hosts
         run: |
           ssh-keyscan -t rsa,ecdsa,ed25519 -T 30 -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
@@ -93,7 +91,6 @@ jobs:
             apps/gym-service/prisma/ \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/gym-service/prisma/
 
-          # ✅ NEW: Copy email-service app files to EC2
           rsync -az \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
             apps/email-service/ \
@@ -101,8 +98,8 @@ jobs:
 
           rsync -az \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
-            apps/ai-service/ \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/ai-service/
+            apps/ai-service/prisma/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/ai-service/prisma/
 
       - name: Install production deps & restart on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -130,6 +127,11 @@ jobs:
             pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
             pnpm exec prisma generate --schema apps/ai-service/prisma/schema.prisma
+
+            pnpm exec prisma migrate deploy --schema apps/auth-service/prisma/schema.prisma
+            pnpm exec prisma migrate deploy --schema apps/user-service/prisma/schema.prisma
+            pnpm exec prisma migrate deploy --schema apps/gym-service/prisma/schema.prisma
+            pnpm exec prisma migrate deploy --schema apps/ai-service/prisma/schema.prisma
 
             pm2 delete all || true
             pm2 start ecosystem.config.js

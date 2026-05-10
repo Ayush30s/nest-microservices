@@ -143,21 +143,21 @@ export class AiPreWorkoutService implements OnModuleInit {
       throw new Error('OPENAI_API_KEY is missing');
     }
 
-    // this.llm = new ChatOpenAI({
-    //   apiKey,
-    //   configuration: {
-    //     baseURL: 'https://integrate.api.nvidia.com/v1',
-    //   },
-    //   model: 'openai/gpt-oss-20b',
-    //   temperature: 0.3,
-    //   maxTokens: 4096,
-    //   streaming: true,
-    // });
+    this.llm = new ChatOpenAI({
+      apiKey,
+      configuration: {
+        baseURL: 'https://integrate.api.nvidia.com/v1',
+      },
+      model: 'openai/gpt-oss-20b',
+      temperature: 0.3,
+      maxTokens: 4096,
+      streaming: true,
+    });
   }
 
   async onModuleInit() {
-    // this.graph = this.buildGraph();
-    // this.logger.log('Pre-workout AI agent graph initialized');
+    this.graph = this.buildGraph();
+    this.logger.log('Pre-workout AI agent graph initialized');
   }
 
   private buildGraph() {

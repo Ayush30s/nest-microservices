@@ -102,38 +102,38 @@ jobs:
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/ai-service/prisma/
 
       - name: Install production deps & restart on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          command_timeout: 10m
-          script: |
-            set -e
-            cd ~/app
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=accept-new \
+            -o ConnectTimeout=30 \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=20 \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+              set -e
+              cd ~/app
 
-            if ! command -v pnpm >/dev/null 2>&1; then
-              npm install -g pnpm
-            fi
+              if ! command -v pnpm >/dev/null 2>&1; then
+                npm install -g pnpm
+              fi
 
-            if ! command -v pm2 >/dev/null 2>&1; then
-              npm install -g pm2
-            fi
+              if ! command -v pm2 >/dev/null 2>&1; then
+                npm install -g pm2
+              fi
 
-            pnpm install --no-frozen-lockfile
+              pnpm install --no-frozen-lockfile
 
-            pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
-            pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
-            pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
-            pnpm exec prisma generate --schema apps/ai-service/prisma/schema.prisma
+              pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
+              pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
+              pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
+              pnpm exec prisma generate --schema apps/ai-service/prisma/schema.prisma
 
-            pnpm exec prisma migrate deploy --schema apps/auth-service/prisma/schema.prisma
-            pnpm exec prisma migrate deploy --schema apps/user-service/prisma/schema.prisma
-            pnpm exec prisma migrate deploy --schema apps/gym-service/prisma/schema.prisma
-            pnpm exec prisma migrate deploy --schema apps/ai-service/prisma/schema.prisma
+              pnpm exec prisma migrate deploy --schema apps/auth-service/prisma/schema.prisma
+              pnpm exec prisma migrate deploy --schema apps/user-service/prisma/schema.prisma
+              pnpm exec prisma migrate deploy --schema apps/gym-service/prisma/schema.prisma
+              pnpm exec prisma migrate deploy --schema apps/ai-service/prisma/schema.prisma
 
-            pm2 delete all || true
-            pm2 start ecosystem.config.js
-            pm2 save
-            pm2 list
+              pm2 delete all || true
+              pm2 start ecosystem.config.js
+              pm2 save
+              pm2 list
+          ENDSSH

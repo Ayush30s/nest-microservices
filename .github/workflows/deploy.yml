@@ -7,7 +7,52 @@ on:
   workflow_dispatch:
 
 jobs:
+
+  # ── Step 1: Detect which services changed ──────────────────────
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api-gateway:      ${{ steps.filter.outputs.api-gateway }}
+      auth-service:     ${{ steps.filter.outputs.auth-service }}
+      gym-service:      ${{ steps.filter.outputs.gym-service }}
+      product-service:  ${{ steps.filter.outputs.product-service }}
+      user-service:     ${{ steps.filter.outputs.user-service }}
+      realtime-service: ${{ steps.filter.outputs.realtime-service }}
+      email-service:    ${{ steps.filter.outputs.email-service }}
+      ai-service:       ${{ steps.filter.outputs.ai-service }}
+      shared:           ${{ steps.filter.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api-gateway:
+              - 'apps/api-gateway/**'
+            auth-service:
+              - 'apps/auth-service/**'
+            gym-service:
+              - 'apps/gym-service/**'
+            product-service:
+              - 'apps/product-service/**'
+            user-service:
+              - 'apps/user-service/**'
+            realtime-service:
+              - 'apps/realtime-service/**'
+            email-service:
+              - 'apps/email-service/**'
+            ai-service:
+              - 'apps/ai-service/**'
+            shared:
+              - 'libs/common/**'                  # ✅ fixed — was 'libs/**'
+              - 'libs/RcpHttpExceptionFilter.ts'  # ✅ fixed — covers root lib file
+              - 'tsconfig.json'                   # ✅ added — root tsconfig affects all builds
+              - 'tsconfig.build.json'             # ✅ added — same reason
+              - 'nest-cli.json'                   # ✅ added — affects all nest builds
+
+  # ── Step 2: Build & Deploy only changed services ───────────────
   deploy:
+    needs: detect-changes
     runs-on: ubuntu-latest
 
     steps:
@@ -27,24 +72,61 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      # ── Prisma generate (only for services that HAVE prisma) ───
+      # product-service  → no prisma ✅
+      # realtime-service → no prisma ✅
+      # email-service    → no prisma ✅
+      # api-gateway      → no prisma ✅
       - name: Generate Prisma clients
         run: |
-          pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
-          pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
-          pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
-          pnpm exec prisma generate --schema apps/ai-service/prisma/schema.prisma
+          SHARED="${{ needs.detect-changes.outputs.shared }}"
 
-      - name: Build all services
+          if [ "${{ needs.detect-changes.outputs.auth-service }}" = "true" ] || [ "$SHARED" = "true" ]; then
+            echo "🔧 Generating Prisma client for auth-service..."
+            pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
+          fi
+
+          if [ "${{ needs.detect-changes.outputs.user-service }}" = "true" ] || [ "$SHARED" = "true" ]; then
+            echo "🔧 Generating Prisma client for user-service..."
+            pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
+          fi
+
+          if [ "${{ needs.detect-changes.outputs.gym-service }}" = "true" ] || [ "$SHARED" = "true" ]; then
+            echo "🔧 Generating Prisma client for gym-service..."
+            pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
+          fi
+
+          if [ "${{ needs.detect-changes.outputs.ai-service }}" = "true" ] || [ "$SHARED" = "true" ]; then
+            echo "🔧 Generating Prisma client for ai-service..."
+            pnpm exec prisma generate --schema apps/ai-service/prisma/schema.prisma
+          fi
+
+      # ── Build only changed services ────────────────────────────
+      - name: Build changed services
         run: |
-          pnpm exec nest build api-gateway
-          pnpm exec nest build auth-service
-          pnpm exec nest build gym-service
-          pnpm exec nest build product-service
-          pnpm exec nest build user-service
-          pnpm exec nest build realtime-service
-          pnpm exec nest build email-service
-          pnpm exec nest build ai-service
+          SHARED="${{ needs.detect-changes.outputs.shared }}"
 
+          build_if_changed() {
+            local service=$1
+            local changed=$2
+            if [ "$changed" = "true" ] || [ "$SHARED" = "true" ]; then
+              echo "🔨 Building $service..."
+              pnpm exec nest build $service
+            else
+              echo "⏭️  Skipping $service (no changes)"
+            fi
+          }
+
+          build_if_changed api-gateway      "${{ needs.detect-changes.outputs.api-gateway }}"
+          build_if_changed auth-service     "${{ needs.detect-changes.outputs.auth-service }}"
+          build_if_changed gym-service      "${{ needs.detect-changes.outputs.gym-service }}"
+          build_if_changed product-service  "${{ needs.detect-changes.outputs.product-service }}"
+          build_if_changed user-service     "${{ needs.detect-changes.outputs.user-service }}"
+          build_if_changed realtime-service "${{ needs.detect-changes.outputs.realtime-service }}"
+          build_if_changed email-service    "${{ needs.detect-changes.outputs.email-service }}"
+          build_if_changed ai-service       "${{ needs.detect-changes.outputs.ai-service }}"
+
+      # ── SSH setup ──────────────────────────────────────────────
       - name: Write SSH key
         run: |
           mkdir -p ~/.ssh
@@ -57,51 +139,67 @@ jobs:
           ssh-keyscan -t rsa,ecdsa,ed25519 -T 30 -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Copy dist to EC2
+      # ── Rsync only changed service dist folders ────────────────
+      - name: Copy changed dist folders to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=accept-new \
-            -o ConnectTimeout=30 \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p ~/app"
+          SHARED="${{ needs.detect-changes.outputs.shared }}"
+          SSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new"
+          EC2="${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}"
 
-          rsync -az --delete \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
-            dist/ \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/dist/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            $EC2 "mkdir -p ~/app/dist/apps"
 
-          rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
-            package.json \
-            pnpm-lock.yaml \
-            ecosystem.config.js \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/
+          # Always sync root config files
+          rsync -az -e "$SSH" \
+            package.json pnpm-lock.yaml ecosystem.config.js \
+            $EC2:~/app/
 
-          rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
-            apps/auth-service/prisma/ \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/auth-service/prisma/
+          # Helper: sync compiled dist for a service if it changed
+          sync_service() {
+            local service=$1
+            local changed=$2
+            if [ "$changed" = "true" ] || [ "$SHARED" = "true" ]; then
+              echo "📦 Syncing dist for $service..."
+              rsync -az --delete -e "$SSH" \
+                dist/apps/$service/ \
+                $EC2:~/app/dist/apps/$service/
+            fi
+          }
 
-          rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
-            apps/user-service/prisma/ \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/user-service/prisma/
+          sync_service api-gateway      "${{ needs.detect-changes.outputs.api-gateway }}"
+          sync_service auth-service     "${{ needs.detect-changes.outputs.auth-service }}"
+          sync_service gym-service      "${{ needs.detect-changes.outputs.gym-service }}"
+          sync_service product-service  "${{ needs.detect-changes.outputs.product-service }}"
+          sync_service user-service     "${{ needs.detect-changes.outputs.user-service }}"
+          sync_service realtime-service "${{ needs.detect-changes.outputs.realtime-service }}"
+          sync_service email-service    "${{ needs.detect-changes.outputs.email-service }}"
+          sync_service ai-service       "${{ needs.detect-changes.outputs.ai-service }}"
 
-          rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
-            apps/gym-service/prisma/ \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/gym-service/prisma/
+          # ── Prisma schemas (only services that have prisma) ────
+          # ✅ auth, user, gym, ai have prisma — product/realtime/email/gateway do NOT
+          if [ "${{ needs.detect-changes.outputs.auth-service }}" = "true" ] || [ "$SHARED" = "true" ]; then
+            rsync -az -e "$SSH" apps/auth-service/prisma/ $EC2:~/app/apps/auth-service/prisma/
+          fi
 
-          rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
-            apps/email-service/ \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/email-service/
+          if [ "${{ needs.detect-changes.outputs.user-service }}" = "true" ] || [ "$SHARED" = "true" ]; then
+            rsync -az -e "$SSH" apps/user-service/prisma/ $EC2:~/app/apps/user-service/prisma/
+          fi
 
-          rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
-            apps/ai-service/prisma/ \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/apps/ai-service/prisma/
+          if [ "${{ needs.detect-changes.outputs.gym-service }}" = "true" ] || [ "$SHARED" = "true" ]; then
+            rsync -az -e "$SSH" apps/gym-service/prisma/ $EC2:~/app/apps/gym-service/prisma/
+          fi
 
-      - name: Install production deps & restart on EC2
+          if [ "${{ needs.detect-changes.outputs.ai-service }}" = "true" ] || [ "$SHARED" = "true" ]; then
+            rsync -az -e "$SSH" apps/ai-service/prisma/ $EC2:~/app/apps/ai-service/prisma/
+          fi
+
+          # ✅ email-service: only sync templates/config if any, NOT raw src/
+          # (dist is already handled above by sync_service)
+          # Only uncomment below if email-service has non-compiled assets like HTML templates
+          # rsync -az -e "$SSH" apps/email-service/templates/ $EC2:~/app/apps/email-service/templates/
+
+      # ── On EC2: install deps, migrate, restart ONLY changed ────
+      - name: Install deps & restart changed services on EC2
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=accept-new \
@@ -109,31 +207,59 @@ jobs:
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=20 \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
-              set -e
-              cd ~/app
+            set -e
+            cd ~/app
 
-              if ! command -v pnpm >/dev/null 2>&1; then
-                npm install -g pnpm
+            SHARED="${{ needs.detect-changes.outputs.shared }}"
+
+            command -v pnpm >/dev/null 2>&1 || npm install -g pnpm
+            command -v pm2  >/dev/null 2>&1 || npm install -g pm2
+
+            pnpm install --no-frozen-lockfile
+
+            # ── Prisma migrate only for services that HAVE prisma ─
+            run_migrate() {
+              local schema=$1
+              local changed=$2
+              if [ "$changed" = "true" ] || [ "$SHARED" = "true" ]; then
+                echo "🗄️  Migrating $schema..."
+                pnpm exec prisma generate --schema $schema
+                pnpm exec prisma migrate deploy --schema $schema
               fi
+            }
 
-              if ! command -v pm2 >/dev/null 2>&1; then
-                npm install -g pm2
+            # ✅ only these 4 have prisma schemas
+            run_migrate apps/auth-service/prisma/schema.prisma "${{ needs.detect-changes.outputs.auth-service }}"
+            run_migrate apps/user-service/prisma/schema.prisma "${{ needs.detect-changes.outputs.user-service }}"
+            run_migrate apps/gym-service/prisma/schema.prisma  "${{ needs.detect-changes.outputs.gym-service }}"
+            run_migrate apps/ai-service/prisma/schema.prisma   "${{ needs.detect-changes.outputs.ai-service }}"
+
+            # ── PM2 reload only changed services ──────────────────
+            restart_service() {
+              local service=$1
+              local changed=$2
+              if [ "$changed" = "true" ] || [ "$SHARED" = "true" ]; then
+                echo "♻️  Reloading $service..."
+                if pm2 describe $service > /dev/null 2>&1; then
+                  pm2 reload $service
+                else
+                  pm2 start ecosystem.config.js --only $service
+                fi
+              else
+                echo "⏭️  Skipping $service (no changes detected)"
               fi
+            }
 
-              pnpm install --no-frozen-lockfile
+            # ✅ all 8 services match your apps/ folder exactly
+            restart_service api-gateway      "${{ needs.detect-changes.outputs.api-gateway }}"
+            restart_service auth-service     "${{ needs.detect-changes.outputs.auth-service }}"
+            restart_service gym-service      "${{ needs.detect-changes.outputs.gym-service }}"
+            restart_service product-service  "${{ needs.detect-changes.outputs.product-service }}"
+            restart_service user-service     "${{ needs.detect-changes.outputs.user-service }}"
+            restart_service realtime-service "${{ needs.detect-changes.outputs.realtime-service }}"
+            restart_service email-service    "${{ needs.detect-changes.outputs.email-service }}"
+            restart_service ai-service       "${{ needs.detect-changes.outputs.ai-service }}"
 
-              pnpm exec prisma generate --schema apps/auth-service/prisma/schema.prisma
-              pnpm exec prisma generate --schema apps/user-service/prisma/schema.prisma
-              pnpm exec prisma generate --schema apps/gym-service/prisma/schema.prisma
-              pnpm exec prisma generate --schema apps/ai-service/prisma/schema.prisma
-
-              pnpm exec prisma migrate deploy --schema apps/auth-service/prisma/schema.prisma
-              pnpm exec prisma migrate deploy --schema apps/user-service/prisma/schema.prisma
-              pnpm exec prisma migrate deploy --schema apps/gym-service/prisma/schema.prisma
-              pnpm exec prisma migrate deploy --schema apps/ai-service/prisma/schema.prisma
-
-              pm2 delete all || true
-              pm2 start ecosystem.config.js
-              pm2 save
-              pm2 list
+            pm2 save
+            pm2 list
           ENDSSH
